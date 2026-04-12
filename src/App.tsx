@@ -12,6 +12,9 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
 import Editor from "./pages/Editor";
+import ImageToVideo from "./pages/ImageToVideo";
+import Enhancer from "./pages/Enhancer";
+import History from "./pages/History";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -31,6 +34,9 @@ const App = () => (
                 <Route path="/signup" element={<Signup />} />
                 <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                 <Route path="/editor" element={<ProtectedRoute><Editor /></ProtectedRoute>} />
+                <Route path="/image-to-video" element={<ProtectedRoute><ImageToVideo /></ProtectedRoute>} />
+                <Route path="/enhancer" element={<ProtectedRoute><Enhancer /></ProtectedRoute>} />
+                <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </Layout>

@@ -3,10 +3,14 @@ import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { LogOut, User, Sparkles } from "lucide-react";
+import { LogOut, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
-export function Navbar() {
+interface NavbarProps {
+  minimal?: boolean;
+}
+
+export function Navbar({ minimal }: NavbarProps) {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
 
@@ -15,6 +19,18 @@ export function Navbar() {
     toast.success("Logged out successfully");
     navigate("/");
   };
+
+  if (minimal) {
+    return (
+      <div className="flex items-center gap-3">
+        {!loading && user && (
+          <Button variant="ghost" size="icon" onClick={handleLogout}>
+            <LogOut className="h-4 w-4" />
+          </Button>
+        )}
+      </div>
+    );
+  }
 
   return (
     <nav className="sticky top-0 z-50 border-b bg-background/80 backdrop-blur-lg">

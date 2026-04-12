@@ -1,27 +1,56 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { SplitButton } from "@/components/SplitButton";
 import { toast } from "sonner";
-import { Loader2, Sparkles, Download, RefreshCw } from "lucide-react";
+import {
+  Loader2,
+  Sparkles,
+  Download,
+  RefreshCw,
+  Wand2,
+  RotateCcw,
+  Pencil,
+} from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 
 const SIZES = [
-  { label: "1:1", value: "1:1" },
-  { label: "16:9", value: "16:9" },
-  { label: "9:16", value: "9:16" },
+  { label: "1:1", value: "1:1", w: 1024, h: 1024 },
+  { label: "16:9", value: "16:9", w: 1024, h: 576 },
+  { label: "9:16", value: "9:16", w: 576, h: 1024 },
 ] as const;
 
 const STYLES = ["Realistic", "Anime", "Cinematic", "Digital Art"] as const;
 
+type Provider = "lovable" | "huggingface";
+
 export default function Dashboard() {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
   const [prompt, setPrompt] = useState("");
+  const [negativePrompt, setNegativePrompt] = useState("");
   const [size, setSize] = useState<string>("1:1");
   const [style, setStyle] = useState<string>("Realistic");
+  const [provider, setProvider] = useState<Provider>("lovable");
+  const [guidanceScale, setGuidanceScale] = useState(7.5);
   const [images, setImages] = useState<string[]>([]);
   const [generating, setGenerating] = useState(false);
+  const [enhancing, setEnhancing] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
+  useEffect(() => {
+    const p = searchParams.get("prompt");
+    if (p) setPrompt(p);
+  }, [searchParams]);
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
@@ -31,28 +60,84 @@ export default function Dashboard() {
     setGenerating(true);
     setImages([]);
     try {
-      const { supabase } = await import("@/integrations/supabase/client");
-      const { data, error } = await supabase.functions.invoke("generate-image", {
-        body: { prompt: `${style} style: ${prompt}`, size, count: 2 },
-      });
-      if (error) throw error;
-      if (data?.images) {
-        setImages(data.images);
+      const sizeConfig = SIZES.find((s) => s.value === size) || SIZES[0];
+
+      if (provider === "huggingface") {
+        const { data, error } = await supabase.functions.invoke("generate-image-hf", {
+          body: {
+            prompt: `${style} style: ${prompt}`,
+            negativePrompt: negativePrompt || undefined,
+            width: sizeConfig.w,
+            height: sizeConfig.h,
+            guidanceScale,
+            count: 2,
+          },
+        });
+        if (error) throw error;
+        if (data?.images) setImages(data.images);
+        else toast.error("No images returned");
       } else {
-        toast.error("No images returned");
+        const { data, error } = await supabase.functions.invoke("generate-image", {
+          body: { prompt: `${style} style: ${prompt}`, size, count: 2 },
+        });
+        if (error) throw error;
+        if (data?.images) setImages(data.images);
+        else toast.error("No images returned");
+      }
+
+      // Save to history
+      if (user) {
+        await supabase.from("generations").insert({
+          user_id: user.id,
+          prompt: `${style} style: ${prompt}`,
+          style,
+          size,
+          image_urls: images.length > 0 ? images : undefined,
+        });
       }
     } catch (err: any) {
       console.error(err);
       if (err?.status === 429) {
-        toast.error("Rate limited — please wait a moment and try again.");
-      } else if (err?.status === 402) {
-        toast.error("Credits exhausted. Please add funds.");
+        toast.error("Rate limited — please wait and try again.");
+      } else if (err?.status === 503) {
+        toast.error("Model is loading — try again in a moment.");
       } else {
         toast.error(err?.message || "Failed to generate images");
       }
     } finally {
       setGenerating(false);
     }
+  };
+
+  const handleEnhancePrompt = async () => {
+    if (!prompt.trim()) {
+      toast.error("Enter a prompt to enhance");
+      return;
+    }
+    setEnhancing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("enhance-prompt", {
+        body: { prompt },
+      });
+      if (error) throw error;
+      if (data?.enhanced) {
+        setPrompt(data.enhanced);
+        toast.success("Prompt enhanced!");
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to enhance prompt");
+    } finally {
+      setEnhancing(false);
+    }
+  };
+
+  const handleReset = () => {
+    setPrompt("");
+    setNegativePrompt("");
+    setImages([]);
+    setSize("1:1");
+    setStyle("Realistic");
+    setGuidanceScale(7.5);
   };
 
   const handleDownload = (dataUrl: string, index: number) => {
@@ -66,13 +151,11 @@ export default function Dashboard() {
     <div className="container mx-auto max-w-4xl px-4 py-8">
       <div className="mb-8 text-center">
         <h1 className="text-3xl font-bold">Create Images</h1>
-        <p className="mt-2 text-muted-foreground">
-          Describe what you want to see
-        </p>
+        <p className="mt-2 text-muted-foreground">Describe what you want to see</p>
       </div>
 
-      {/* Prompt Input */}
       <div className="mx-auto max-w-2xl space-y-4">
+        {/* Prompt */}
         <Textarea
           placeholder="A magical forest at sunset with glowing mushrooms..."
           value={prompt}
@@ -112,21 +195,93 @@ export default function Dashboard() {
               ))}
             </div>
           </div>
+          <div className="space-y-1">
+            <span className="text-xs font-medium text-muted-foreground">Provider</span>
+            <div className="flex gap-1">
+              <Button
+                variant={provider === "lovable" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setProvider("lovable")}
+              >
+                Lovable AI
+              </Button>
+              <Button
+                variant={provider === "huggingface" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setProvider("huggingface")}
+              >
+                Stable Diffusion
+              </Button>
+            </div>
+          </div>
         </div>
 
-        <Button
+        {/* Advanced (HF only) */}
+        {provider === "huggingface" && (
+          <div className="space-y-3 rounded-lg border p-4">
+            <button
+              onClick={() => setShowAdvanced(!showAdvanced)}
+              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {showAdvanced ? "▼" : "▶"} Advanced Settings
+            </button>
+            {showAdvanced && (
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Negative Prompt</Label>
+                  <Input
+                    placeholder="blurry, low quality, distorted..."
+                    value={negativePrompt}
+                    onChange={(e) => setNegativePrompt(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">
+                    Guidance Scale: {guidanceScale}
+                  </Label>
+                  <input
+                    type="range"
+                    min={1}
+                    max={20}
+                    step={0.5}
+                    value={guidanceScale}
+                    onChange={(e) => setGuidanceScale(Number(e.target.value))}
+                    className="w-full"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Split Button */}
+        <SplitButton
           className="w-full"
-          size="lg"
+          label={
+            <>
+              {generating ? (
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              ) : (
+                <Sparkles className="mr-2 h-5 w-5" />
+              )}
+              {generating ? "Generating..." : "Generate Images"}
+            </>
+          }
           onClick={handleGenerate}
-          disabled={generating}
-        >
-          {generating ? (
-            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-          ) : (
-            <Sparkles className="mr-2 h-5 w-5" />
-          )}
-          {generating ? "Generating..." : "Generate Images"}
-        </Button>
+          disabled={generating || enhancing}
+          dropdownItems={[
+            {
+              label: enhancing ? "Enhancing..." : "Enhance Prompt",
+              icon: <Wand2 className="h-4 w-4" />,
+              onClick: handleEnhancePrompt,
+            },
+            {
+              label: "Reset",
+              icon: <RotateCcw className="h-4 w-4" />,
+              onClick: handleReset,
+            },
+          ]}
+        />
       </div>
 
       {/* Results */}
@@ -150,6 +305,15 @@ export default function Dashboard() {
                   onClick={() => handleDownload(img, i)}
                 >
                   <Download className="h-4 w-4" />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="secondary"
+                  onClick={() =>
+                    navigate(`/editor?image=${encodeURIComponent(img)}`)
+                  }
+                >
+                  <Pencil className="h-4 w-4" />
                 </Button>
                 <Button
                   size="icon"
