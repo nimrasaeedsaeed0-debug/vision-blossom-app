@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -10,26 +10,29 @@ import { Input } from "@/components/ui/input";
 import { SplitButton } from "@/components/SplitButton";
 import { toast } from "sonner";
 import {
-  Loader2,
-  Sparkles,
-  Download,
-  RefreshCw,
-  Wand2,
-  RotateCcw,
-  Pencil,
+  Loader2, Sparkles, Download, RefreshCw, Wand2, RotateCcw, Pencil,
+  Plus, Zap, Upload, LayoutGrid, FolderOpen, MoreHorizontal, Clock
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
 
 const SIZES = [
   { label: "1:1", value: "1:1", w: 1024, h: 1024 },
   { label: "16:9", value: "16:9", w: 1024, h: 576 },
   { label: "9:16", value: "9:16", w: 576, h: 1024 },
+  { label: "4:5", value: "4:5", w: 1024, h: 1280 },
 ] as const;
 
-const STYLES = ["Realistic", "Anime", "Cinematic", "Digital Art"] as const;
+const STYLES = ["Realistic", "Anime", "Cinematic", "Digital Art", "Watercolor", "3D Render"] as const;
 
 type Provider = "lovable" | "huggingface";
+
+// Mock recent projects
+const recentProjects = [
+  { id: "1", name: "Instagram Story", updated: "5 min ago", color: "from-primary/30 to-cyan/30" },
+  { id: "2", name: "YouTube Thumbnail", updated: "2 hours ago", color: "from-cyan/30 to-success/30" },
+  { id: "3", name: "Brand Poster", updated: "Yesterday", color: "from-warning/30 to-primary/30" },
+  { id: "4", name: "Social Post", updated: "2 days ago", color: "from-destructive/30 to-primary/30" },
+];
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -46,6 +49,7 @@ export default function Dashboard() {
   const [generating, setGenerating] = useState(false);
   const [enhancing, setEnhancing] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [activeTab, setActiveTab] = useState<"create" | "projects">("create");
 
   useEffect(() => {
     const p = searchParams.get("prompt");
@@ -53,25 +57,14 @@ export default function Dashboard() {
   }, [searchParams]);
 
   const handleGenerate = async () => {
-    if (!prompt.trim()) {
-      toast.error("Please enter a prompt");
-      return;
-    }
+    if (!prompt.trim()) { toast.error("Please enter a prompt"); return; }
     setGenerating(true);
     setImages([]);
     try {
       const sizeConfig = SIZES.find((s) => s.value === size) || SIZES[0];
-
       if (provider === "huggingface") {
         const { data, error } = await supabase.functions.invoke("generate-image-hf", {
-          body: {
-            prompt: `${style} style: ${prompt}`,
-            negativePrompt: negativePrompt || undefined,
-            width: sizeConfig.w,
-            height: sizeConfig.h,
-            guidanceScale,
-            count: 2,
-          },
+          body: { prompt: `${style} style: ${prompt}`, negativePrompt: negativePrompt || undefined, width: sizeConfig.w, height: sizeConfig.h, guidanceScale, count: 2 },
         });
         if (error) throw error;
         if (data?.images) setImages(data.images);
@@ -84,46 +77,27 @@ export default function Dashboard() {
         if (data?.images) setImages(data.images);
         else toast.error("No images returned");
       }
-
-      // Save to history
       if (user) {
         await supabase.from("generations").insert({
-          user_id: user.id,
-          prompt: `${style} style: ${prompt}`,
-          style,
-          size,
-          image_urls: images.length > 0 ? images : undefined,
+          user_id: user.id, prompt: `${style} style: ${prompt}`, style, size, image_urls: images.length > 0 ? images : undefined,
         });
       }
     } catch (err: any) {
-      console.error(err);
-      if (err?.status === 429) {
-        toast.error("Rate limited — please wait and try again.");
-      } else if (err?.status === 503) {
-        toast.error("Model is loading — try again in a moment.");
-      } else {
-        toast.error(err?.message || "Failed to generate images");
-      }
+      if (err?.status === 429) toast.error("Rate limited — please wait and try again.");
+      else if (err?.status === 503) toast.error("Model is loading — try again in a moment.");
+      else toast.error(err?.message || "Failed to generate images");
     } finally {
       setGenerating(false);
     }
   };
 
   const handleEnhancePrompt = async () => {
-    if (!prompt.trim()) {
-      toast.error("Enter a prompt to enhance");
-      return;
-    }
+    if (!prompt.trim()) { toast.error("Enter a prompt to enhance"); return; }
     setEnhancing(true);
     try {
-      const { data, error } = await supabase.functions.invoke("enhance-prompt", {
-        body: { prompt },
-      });
+      const { data, error } = await supabase.functions.invoke("enhance-prompt", { body: { prompt } });
       if (error) throw error;
-      if (data?.enhanced) {
-        setPrompt(data.enhanced);
-        toast.success("Prompt enhanced!");
-      }
+      if (data?.enhanced) { setPrompt(data.enhanced); toast.success("Prompt enhanced!"); }
     } catch (err: any) {
       toast.error(err?.message || "Failed to enhance prompt");
     } finally {
@@ -132,201 +106,166 @@ export default function Dashboard() {
   };
 
   const handleReset = () => {
-    setPrompt("");
-    setNegativePrompt("");
-    setImages([]);
-    setSize("1:1");
-    setStyle("Realistic");
-    setGuidanceScale(7.5);
+    setPrompt(""); setNegativePrompt(""); setImages([]); setSize("1:1"); setStyle("Realistic"); setGuidanceScale(7.5);
   };
 
   const handleDownload = (dataUrl: string, index: number) => {
     const a = document.createElement("a");
     a.href = dataUrl;
-    a.download = `imageforge-${Date.now()}-${index}.png`;
+    a.download = `flashai-${Date.now()}-${index}.png`;
     a.click();
   };
 
   return (
-    <div className="container mx-auto max-w-4xl px-4 py-8">
-      <div className="mb-8 text-center">
-        <h1 className="text-3xl font-bold">Create Images</h1>
-        <p className="mt-2 text-muted-foreground">Describe what you want to see</p>
-      </div>
-
-      <div className="mx-auto max-w-2xl space-y-4">
-        {/* Prompt */}
-        <Textarea
-          placeholder="A magical forest at sunset with glowing mushrooms..."
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          className="min-h-[100px] resize-none text-base"
-        />
-
-        {/* Controls */}
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="space-y-1">
-            <span className="text-xs font-medium text-muted-foreground">Size</span>
-            <div className="flex gap-1">
-              {SIZES.map((s) => (
-                <Button
-                  key={s.value}
-                  variant={size === s.value ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setSize(s.value)}
-                >
-                  {s.label}
-                </Button>
-              ))}
+    <div className="container mx-auto max-w-6xl px-4 py-8 animate-fade-in">
+      {/* Quick Actions */}
+      <div className="mb-8 grid grid-cols-2 gap-3 md:grid-cols-4">
+        {[
+          { icon: Plus, label: "New Design", desc: "Start from scratch", onClick: () => setActiveTab("create") },
+          { icon: Zap, label: "Generate with AI", desc: "Describe your idea", onClick: () => setActiveTab("create") },
+          { icon: Upload, label: "Upload File", desc: "Import your media", onClick: () => toast.info("Coming soon") },
+          { icon: LayoutGrid, label: "Templates", desc: "Browse 1,000+", onClick: () => navigate("/templates") },
+        ].map(({ icon: Icon, label, desc, onClick }) => (
+          <button
+            key={label}
+            onClick={onClick}
+            className="group flex flex-col items-center gap-2 rounded-xl border border-border/50 bg-card p-4 text-center transition-all duration-200 hover:-translate-y-1 hover:border-primary/30 hover:shadow-md"
+          >
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 transition-colors duration-200 group-hover:bg-primary/20">
+              <Icon className="h-5 w-5 text-primary" />
             </div>
-          </div>
-          <div className="space-y-1">
-            <span className="text-xs font-medium text-muted-foreground">Style</span>
-            <div className="flex flex-wrap gap-1">
-              {STYLES.map((s) => (
-                <Button
-                  key={s}
-                  variant={style === s ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setStyle(s)}
-                >
-                  {s}
-                </Button>
-              ))}
-            </div>
-          </div>
-          <div className="space-y-1">
-            <span className="text-xs font-medium text-muted-foreground">Provider</span>
-            <div className="flex gap-1">
-              <Button
-                variant={provider === "lovable" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setProvider("lovable")}
-              >
-                Lovable AI
-              </Button>
-              <Button
-                variant={provider === "huggingface" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setProvider("huggingface")}
-              >
-                Stable Diffusion
-              </Button>
-            </div>
-          </div>
-        </div>
-
-        {/* Advanced (HF only) */}
-        {provider === "huggingface" && (
-          <div className="space-y-3 rounded-lg border p-4">
-            <button
-              onClick={() => setShowAdvanced(!showAdvanced)}
-              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-            >
-              {showAdvanced ? "▼" : "▶"} Advanced Settings
-            </button>
-            {showAdvanced && (
-              <div className="space-y-3">
-                <div className="space-y-1">
-                  <Label className="text-xs">Negative Prompt</Label>
-                  <Input
-                    placeholder="blurry, low quality, distorted..."
-                    value={negativePrompt}
-                    onChange={(e) => setNegativePrompt(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">
-                    Guidance Scale: {guidanceScale}
-                  </Label>
-                  <input
-                    type="range"
-                    min={1}
-                    max={20}
-                    step={0.5}
-                    value={guidanceScale}
-                    onChange={(e) => setGuidanceScale(Number(e.target.value))}
-                    className="w-full"
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Split Button */}
-        <SplitButton
-          className="w-full"
-          label={
-            <>
-              {generating ? (
-                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-              ) : (
-                <Sparkles className="mr-2 h-5 w-5" />
-              )}
-              {generating ? "Generating..." : "Generate Images"}
-            </>
-          }
-          onClick={handleGenerate}
-          disabled={generating || enhancing}
-          dropdownItems={[
-            {
-              label: enhancing ? "Enhancing..." : "Enhance Prompt",
-              icon: <Wand2 className="h-4 w-4" />,
-              onClick: handleEnhancePrompt,
-            },
-            {
-              label: "Reset",
-              icon: <RotateCcw className="h-4 w-4" />,
-              onClick: handleReset,
-            },
-          ]}
-        />
-      </div>
-
-      {/* Results */}
-      <div className="mt-10 grid gap-4 sm:grid-cols-2">
-        {generating &&
-          Array.from({ length: 2 }).map((_, i) => (
-            <Skeleton key={i} className="aspect-square w-full rounded-xl" />
-          ))}
-        {images.map((img, i) => (
-          <Card key={i} className="group relative overflow-hidden">
-            <CardContent className="p-0">
-              <img
-                src={img}
-                alt={`Generated ${i + 1}`}
-                className="aspect-square w-full object-cover"
-              />
-              <div className="absolute inset-0 flex items-end justify-end gap-2 bg-gradient-to-t from-black/50 to-transparent p-3 opacity-0 transition-opacity group-hover:opacity-100">
-                <Button
-                  size="icon"
-                  variant="secondary"
-                  onClick={() => handleDownload(img, i)}
-                >
-                  <Download className="h-4 w-4" />
-                </Button>
-                <Button
-                  size="icon"
-                  variant="secondary"
-                  onClick={() =>
-                    navigate(`/editor?image=${encodeURIComponent(img)}`)
-                  }
-                >
-                  <Pencil className="h-4 w-4" />
-                </Button>
-                <Button
-                  size="icon"
-                  variant="secondary"
-                  onClick={handleGenerate}
-                >
-                  <RefreshCw className="h-4 w-4" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+            <span className="text-sm font-medium">{label}</span>
+            <span className="text-xs text-muted-foreground">{desc}</span>
+          </button>
         ))}
       </div>
+
+      {/* Tabs */}
+      <div className="mb-6 flex gap-1 rounded-lg border bg-muted p-1">
+        <button
+          onClick={() => setActiveTab("create")}
+          className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-all duration-200 ${activeTab === "create" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+        >
+          <Sparkles className="mr-2 inline h-4 w-4" />Create with AI
+        </button>
+        <button
+          onClick={() => setActiveTab("projects")}
+          className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-all duration-200 ${activeTab === "projects" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+        >
+          <FolderOpen className="mr-2 inline h-4 w-4" />Recent Projects
+        </button>
+      </div>
+
+      {activeTab === "create" ? (
+        <div className="mx-auto max-w-2xl space-y-4">
+          <Textarea
+            placeholder="A magical forest at sunset with glowing mushrooms..."
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            className="min-h-[100px] resize-none text-base"
+          />
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="space-y-1">
+              <span className="text-xs font-medium text-muted-foreground">Size</span>
+              <div className="flex gap-1">
+                {SIZES.map((s) => (
+                  <Button key={s.value} variant={size === s.value ? "default" : "outline"} size="sm" onClick={() => setSize(s.value)} className="transition-all duration-200">{s.label}</Button>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-1">
+              <span className="text-xs font-medium text-muted-foreground">Style</span>
+              <div className="flex flex-wrap gap-1">
+                {STYLES.map((s) => (
+                  <Button key={s} variant={style === s ? "default" : "outline"} size="sm" onClick={() => setStyle(s)} className="transition-all duration-200">{s}</Button>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-1">
+              <span className="text-xs font-medium text-muted-foreground">Provider</span>
+              <div className="flex gap-1">
+                <Button variant={provider === "lovable" ? "default" : "outline"} size="sm" onClick={() => setProvider("lovable")} className="transition-all duration-200">Flash AI</Button>
+                <Button variant={provider === "huggingface" ? "default" : "outline"} size="sm" onClick={() => setProvider("huggingface")} className="transition-all duration-200">Stable Diffusion</Button>
+              </div>
+            </div>
+          </div>
+          {provider === "huggingface" && (
+            <div className="space-y-3 rounded-lg border p-4">
+              <button onClick={() => setShowAdvanced(!showAdvanced)} className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+                {showAdvanced ? "▼" : "▶"} Advanced Settings
+              </button>
+              {showAdvanced && (
+                <div className="space-y-3 animate-fade-in">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Negative Prompt</Label>
+                    <Input placeholder="blurry, low quality, distorted..." value={negativePrompt} onChange={(e) => setNegativePrompt(e.target.value)} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Guidance Scale: {guidanceScale}</Label>
+                    <input type="range" min={1} max={20} step={0.5} value={guidanceScale} onChange={(e) => setGuidanceScale(Number(e.target.value))} className="w-full" />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          <SplitButton
+            className="w-full"
+            label={
+              <>
+                {generating ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Zap className="mr-2 h-5 w-5 fill-current" />}
+                {generating ? "Generating..." : "Generate Images"}
+              </>
+            }
+            onClick={handleGenerate}
+            disabled={generating || enhancing}
+            dropdownItems={[
+              { label: enhancing ? "Enhancing..." : "Enhance Prompt", icon: <Wand2 className="h-4 w-4" />, onClick: handleEnhancePrompt },
+              { label: "Reset", icon: <RotateCcw className="h-4 w-4" />, onClick: handleReset },
+            ]}
+          />
+          {/* Results */}
+          <div className="mt-6 grid gap-4 sm:grid-cols-2">
+            {generating && Array.from({ length: 2 }).map((_, i) => (
+              <Skeleton key={i} className="aspect-square w-full rounded-xl animate-shimmer" />
+            ))}
+            {images.map((img, i) => (
+              <Card key={i} className="group relative overflow-hidden animate-scale-in" style={{ animationDelay: `${i * 100}ms` }}>
+                <CardContent className="p-0">
+                  <img src={img} alt={`Generated ${i + 1}`} className="aspect-square w-full object-cover" />
+                  <div className="absolute inset-0 flex items-end justify-end gap-2 bg-gradient-to-t from-black/60 to-transparent p-3 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                    <Button size="icon" variant="secondary" onClick={() => handleDownload(img, i)}><Download className="h-4 w-4" /></Button>
+                    <Button size="icon" variant="secondary" onClick={() => navigate(`/editor?image=${encodeURIComponent(img)}`)}><Pencil className="h-4 w-4" /></Button>
+                    <Button size="icon" variant="secondary" onClick={handleGenerate}><RefreshCw className="h-4 w-4" /></Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div>
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="font-heading text-xl font-semibold">Recent Projects</h2>
+            <Link to="/projects" className="text-sm text-primary hover:underline">View All</Link>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {recentProjects.map((project) => (
+              <div key={project.id} className="group cursor-pointer rounded-xl border border-border/50 bg-card overflow-hidden transition-all duration-200 hover:-translate-y-1 hover:border-primary/30 hover:shadow-md">
+                <div className={`aspect-[4/3] bg-gradient-to-br ${project.color} flex items-center justify-center`}>
+                  <span className="text-2xl font-bold text-foreground/20">{project.name.charAt(0)}</span>
+                </div>
+                <div className="p-3">
+                  <p className="text-sm font-medium truncate">{project.name}</p>
+                  <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                    <Clock className="h-3 w-3" />
+                    {project.updated}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
