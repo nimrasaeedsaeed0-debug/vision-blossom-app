@@ -1,6 +1,10 @@
-import { Sparkles, Image, Film, Wand2, Clock, Settings } from "lucide-react";
+import {
+  Image, Film, Wand2, Clock, Settings, LayoutDashboard,
+  FolderOpen, Sparkles, Scissors, Palette, Star, Trash2, PresentationIcon, MessageSquare
+} from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
+import { FlashLogo } from "@/components/FlashLogo";
 import {
   Sidebar,
   SidebarContent,
@@ -15,59 +19,91 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
 
-const navItems = [
-  { title: "Text to Image", url: "/dashboard", icon: Image },
+const mainNav = [
+  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
+  { title: "Templates", url: "/templates", icon: LayoutDashboard },
+  { title: "Brand Kit", url: "/brand-kit", icon: Palette },
+];
+
+const workNav = [
+  { title: "All Projects", url: "/projects", icon: FolderOpen },
+  { title: "History", url: "/history", icon: Clock },
+];
+
+const aiNav = [
+  { title: "Text to Image", url: "/ai-tools", icon: Sparkles },
   { title: "Image to Video", url: "/image-to-video", icon: Film },
   { title: "Image Enhancer", url: "/enhancer", icon: Wand2 },
-  { title: "History", url: "/history", icon: Clock },
-  { title: "Editor", url: "/editor", icon: Settings },
+  { title: "Background Remover", url: "/ai-tools/bg-remover", icon: Scissors },
+  { title: "Presentation Builder", url: "/ai-tools/presentations", icon: PresentationIcon },
+  { title: "Caption Generator", url: "/ai-tools/captions", icon: MessageSquare },
 ];
+
+function NavSection({ label, items, collapsed }: { label: string; items: typeof mainNav; collapsed: boolean }) {
+  return (
+    <SidebarGroup>
+      <SidebarGroupLabel className={collapsed ? "sr-only" : ""}>{label}</SidebarGroupLabel>
+      <SidebarGroupContent>
+        <SidebarMenu>
+          {items.map((item) => (
+            <SidebarMenuItem key={item.title}>
+              <SidebarMenuButton asChild>
+                <NavLink
+                  to={item.url}
+                  end
+                  className="hover:bg-sidebar-accent/50 transition-colors duration-200"
+                  activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium border-l-2 border-sidebar-primary"
+                >
+                  <item.icon className="mr-2 h-4 w-4 shrink-0" />
+                  {!collapsed && <span>{item.title}</span>}
+                </NavLink>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          ))}
+        </SidebarMenu>
+      </SidebarGroupContent>
+    </SidebarGroup>
+  );
+}
 
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
-  const location = useLocation();
 
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b border-sidebar-border p-4">
-        <NavLink to="/" className="flex items-center gap-2">
-          <Sparkles className="h-6 w-6 text-sidebar-primary" />
-          {!collapsed && (
-            <span className="text-lg font-bold text-sidebar-foreground">
-              ImageForge
-            </span>
+        <NavLink to="/" className="flex items-center gap-2 transition-transform duration-200 hover:scale-[1.02]">
+          {collapsed ? (
+            <span className="text-xl">⚡</span>
+          ) : (
+            <FlashLogo size="sm" />
           )}
         </NavLink>
       </SidebarHeader>
 
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Features</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {navItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink
-                      to={item.url}
-                      end
-                      className="hover:bg-sidebar-accent/50"
-                      activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                    >
-                      <item.icon className="mr-2 h-4 w-4" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        <NavSection label="Home" items={mainNav} collapsed={collapsed} />
+        <NavSection label="My Work" items={workNav} collapsed={collapsed} />
+        <NavSection label="AI Tools" items={aiNav} collapsed={collapsed} />
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-sidebar-border p-3">
+      <SidebarFooter className="border-t border-sidebar-border p-3 space-y-3">
+        {!collapsed && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>Storage</span>
+              <span>2.3 / 5 GB</span>
+            </div>
+            <Progress value={46} className="h-1.5" />
+            <Button size="sm" variant="outline" className="w-full text-xs gradient-primary text-primary-foreground border-0">
+              Upgrade to Pro
+            </Button>
+          </div>
+        )}
         <ThemeToggle />
       </SidebarFooter>
     </Sidebar>

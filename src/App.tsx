@@ -15,6 +15,11 @@ import Editor from "./pages/Editor";
 import ImageToVideo from "./pages/ImageToVideo";
 import Enhancer from "./pages/Enhancer";
 import History from "./pages/History";
+import Pricing from "./pages/Pricing";
+import Templates from "./pages/Templates";
+import AITools from "./pages/AITools";
+import BrandKit from "./pages/BrandKit";
+import Projects from "./pages/Projects";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,11 +37,17 @@ const App = () => (
                 <Route path="/" element={<Index />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/signup" element={<Signup />} />
+                <Route path="/pricing" element={<Pricing />} />
                 <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                 <Route path="/editor" element={<ProtectedRoute><Editor /></ProtectedRoute>} />
                 <Route path="/image-to-video" element={<ProtectedRoute><ImageToVideo /></ProtectedRoute>} />
                 <Route path="/enhancer" element={<ProtectedRoute><Enhancer /></ProtectedRoute>} />
                 <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
+                <Route path="/templates" element={<ProtectedRoute><Templates /></ProtectedRoute>} />
+                <Route path="/ai-tools" element={<ProtectedRoute><AITools /></ProtectedRoute>} />
+                <Route path="/ai-tools/:toolId" element={<ProtectedRoute><AITools /></ProtectedRoute>} />
+                <Route path="/brand-kit" element={<ProtectedRoute><BrandKit /></ProtectedRoute>} />
+                <Route path="/projects" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </Layout>
