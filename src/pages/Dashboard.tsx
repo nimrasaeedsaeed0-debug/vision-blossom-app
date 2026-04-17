@@ -26,13 +26,37 @@ const STYLES = ["Realistic", "Anime", "Cinematic", "Digital Art", "Watercolor", 
 
 type Provider = "lovable" | "huggingface";
 
-// Mock recent projects
-const recentProjects = [
-  { id: "1", name: "Instagram Story", updated: "5 min ago", color: "from-primary/30 to-cyan/30" },
-  { id: "2", name: "YouTube Thumbnail", updated: "2 hours ago", color: "from-cyan/30 to-success/30" },
-  { id: "3", name: "Brand Poster", updated: "Yesterday", color: "from-warning/30 to-primary/30" },
-  { id: "4", name: "Social Post", updated: "2 days ago", color: "from-destructive/30 to-primary/30" },
+interface RecentProject {
+  id: string;
+  name: string;
+  thumbnail_url: string | null;
+  updated_at: string;
+}
+
+interface ActivityItem {
+  id: string;
+  action: string;
+  resource_type: string | null;
+  created_at: string;
+}
+
+const PROJECT_COLORS = [
+  "from-primary/30 to-cyan-500/20",
+  "from-cyan-500/30 to-emerald-500/20",
+  "from-warning/30 to-primary/20",
+  "from-rose-500/30 to-primary/20",
 ];
+
+function timeAgo(iso: string): string {
+  const ms = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(ms / 60000);
+  if (m < 1) return "just now";
+  if (m < 60) return `${m} min ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  return `${d}d ago`;
+}
 
 export default function Dashboard() {
   const { user } = useAuth();
