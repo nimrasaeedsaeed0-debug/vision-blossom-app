@@ -14,32 +14,128 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_log: {
+        Row: {
+          action: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          resource_id: string | null
+          resource_type: string | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          resource_id?: string | null
+          resource_type?: string | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          resource_id?: string | null
+          resource_type?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      brand_kits: {
+        Row: {
+          brand_name: string
+          colors: Json
+          created_at: string
+          fonts: Json
+          id: string
+          logo_url: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          brand_name?: string
+          colors?: Json
+          created_at?: string
+          fonts?: Json
+          id?: string
+          logo_url?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          brand_name?: string
+          colors?: Json
+          created_at?: string
+          fonts?: Json
+          id?: string
+          logo_url?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      favorites: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string
+          item_type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id: string
+          item_type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string
+          item_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       generations: {
         Row: {
           created_at: string
           id: string
           image_urls: string[] | null
+          metadata: Json | null
+          output_type: string | null
           prompt: string
           size: string | null
           style: string | null
+          tool: string | null
           user_id: string
         }
         Insert: {
           created_at?: string
           id?: string
           image_urls?: string[] | null
+          metadata?: Json | null
+          output_type?: string | null
           prompt: string
           size?: string | null
           style?: string | null
+          tool?: string | null
           user_id: string
         }
         Update: {
           created_at?: string
           id?: string
           image_urls?: string[] | null
+          metadata?: Json | null
+          output_type?: string | null
           prompt?: string
           size?: string | null
           style?: string | null
+          tool?: string | null
           user_id?: string
         }
         Relationships: []
@@ -69,6 +165,75 @@ export type Database = {
           credits?: number
           display_name?: string | null
           id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      projects: {
+        Row: {
+          created_at: string
+          data: Json | null
+          id: string
+          name: string
+          starred: boolean
+          template_id: string | null
+          thumbnail_url: string | null
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          data?: Json | null
+          id?: string
+          name: string
+          starred?: boolean
+          template_id?: string | null
+          thumbnail_url?: string | null
+          type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          data?: Json | null
+          id?: string
+          name?: string
+          starred?: boolean
+          template_id?: string | null
+          thumbnail_url?: string | null
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_settings: {
+        Row: {
+          created_at: string
+          default_size: string
+          default_style: string
+          language: string
+          theme: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          default_size?: string
+          default_style?: string
+          language?: string
+          theme?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          default_size?: string
+          default_style?: string
+          language?: string
+          theme?: string
           updated_at?: string
           user_id?: string
         }

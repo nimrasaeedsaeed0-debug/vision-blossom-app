@@ -14,6 +14,7 @@ import {
   Plus, Zap, Upload, LayoutGrid, FolderOpen, MoreHorizontal, Clock
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { logActivity } from "@/lib/activity";
 
 const SIZES = [
   { label: "1:1", value: "1:1", w: 1024, h: 1024 },
@@ -26,13 +27,37 @@ const STYLES = ["Realistic", "Anime", "Cinematic", "Digital Art", "Watercolor", 
 
 type Provider = "lovable" | "huggingface";
 
-// Mock recent projects
-const recentProjects = [
-  { id: "1", name: "Instagram Story", updated: "5 min ago", color: "from-primary/30 to-cyan/30" },
-  { id: "2", name: "YouTube Thumbnail", updated: "2 hours ago", color: "from-cyan/30 to-success/30" },
-  { id: "3", name: "Brand Poster", updated: "Yesterday", color: "from-warning/30 to-primary/30" },
-  { id: "4", name: "Social Post", updated: "2 days ago", color: "from-destructive/30 to-primary/30" },
+interface RecentProject {
+  id: string;
+  name: string;
+  thumbnail_url: string | null;
+  updated_at: string;
+}
+
+interface ActivityItem {
+  id: string;
+  action: string;
+  resource_type: string | null;
+  created_at: string;
+}
+
+const PROJECT_COLORS = [
+  "from-primary/30 to-cyan-500/20",
+  "from-cyan-500/30 to-emerald-500/20",
+  "from-warning/30 to-primary/20",
+  "from-rose-500/30 to-primary/20",
 ];
+
+function timeAgo(iso: string): string {
+  const ms = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(ms / 60000);
+  if (m < 1) return "just now";
+  if (m < 60) return `${m} min ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  return `${d}d ago`;
+}
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -50,16 +75,40 @@ export default function Dashboard() {
   const [enhancing, setEnhancing] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [activeTab, setActiveTab] = useState<"create" | "projects">("create");
+  const [recentProjects, setRecentProjects] = useState<RecentProject[]>([]);
+  const [activity, setActivity] = useState<ActivityItem[]>([]);
 
   useEffect(() => {
     const p = searchParams.get("prompt");
     if (p) setPrompt(p);
+    const sz = searchParams.get("size");
+    if (sz) setSize(sz);
+    const st = searchParams.get("style");
+    if (st) setStyle(st);
   }, [searchParams]);
+
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const [{ data: projects }, { data: acts }, { data: settings }] = await Promise.all([
+        supabase.from("projects").select("id, name, thumbnail_url, updated_at").eq("user_id", user.id).order("updated_at", { ascending: false }).limit(4),
+        supabase.from("activity_log").select("id, action, resource_type, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(5),
+        supabase.from("user_settings").select("default_size, default_style").eq("user_id", user.id).maybeSingle(),
+      ]);
+      setRecentProjects(projects || []);
+      setActivity(acts || []);
+      if (settings) {
+        if (!searchParams.get("size")) setSize(settings.default_size);
+        if (!searchParams.get("style")) setStyle(settings.default_style);
+      }
+    })();
+  }, [user, searchParams]);
 
   const handleGenerate = async () => {
     if (!prompt.trim()) { toast.error("Please enter a prompt"); return; }
     setGenerating(true);
     setImages([]);
+    let resultImages: string[] = [];
     try {
       const sizeConfig = SIZES.find((s) => s.value === size) || SIZES[0];
       if (provider === "huggingface") {
@@ -67,20 +116,26 @@ export default function Dashboard() {
           body: { prompt: `${style} style: ${prompt}`, negativePrompt: negativePrompt || undefined, width: sizeConfig.w, height: sizeConfig.h, guidanceScale, count: 2 },
         });
         if (error) throw error;
-        if (data?.images) setImages(data.images);
+        if (data?.images) { resultImages = data.images; setImages(data.images); }
         else toast.error("No images returned");
       } else {
         const { data, error } = await supabase.functions.invoke("generate-image", {
           body: { prompt: `${style} style: ${prompt}`, size, count: 2 },
         });
         if (error) throw error;
-        if (data?.images) setImages(data.images);
+        if (data?.images) { resultImages = data.images; setImages(data.images); }
         else toast.error("No images returned");
       }
-      if (user) {
+      if (user && resultImages.length > 0) {
         await supabase.from("generations").insert({
-          user_id: user.id, prompt: `${style} style: ${prompt}`, style, size, image_urls: images.length > 0 ? images : undefined,
+          user_id: user.id,
+          prompt: `${style} style: ${prompt}`,
+          style, size,
+          image_urls: resultImages,
+          tool: "text-to-image",
+          output_type: "image",
         });
+        await logActivity(user.id, "generated images", "image", undefined, { count: resultImages.length, prompt });
       }
     } catch (err: any) {
       if (err?.status === 429) toast.error("Rate limited — please wait and try again.");
@@ -248,19 +303,57 @@ export default function Dashboard() {
             <h2 className="font-heading text-xl font-semibold">Recent Projects</h2>
             <Link to="/projects" className="text-sm text-primary hover:underline">View All</Link>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {recentProjects.map((project) => (
-              <div key={project.id} className="group cursor-pointer rounded-xl border border-border/50 bg-card overflow-hidden transition-all duration-200 hover:-translate-y-1 hover:border-primary/30 hover:shadow-md">
-                <div className={`aspect-[4/3] bg-gradient-to-br ${project.color} flex items-center justify-center`}>
-                  <span className="text-2xl font-bold text-foreground/20">{project.name.charAt(0)}</span>
-                </div>
-                <div className="p-3">
-                  <p className="text-sm font-medium truncate">{project.name}</p>
-                  <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
-                    <Clock className="h-3 w-3" />
-                    {project.updated}
+          {recentProjects.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center border-2 border-dashed border-border/50 rounded-xl">
+              <FolderOpen className="h-10 w-10 text-muted-foreground/30 mb-3" />
+              <p className="text-sm text-muted-foreground mb-3">No projects yet — create your first one</p>
+              <Button size="sm" onClick={() => navigate("/projects")}>
+                <Plus className="mr-2 h-4 w-4" /> New Project
+              </Button>
+            </div>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {recentProjects.map((project, i) => (
+                <div
+                  key={project.id}
+                  onClick={() => navigate(`/editor?project=${project.id}`)}
+                  className="group cursor-pointer rounded-xl border border-border/50 bg-card overflow-hidden transition-all duration-200 hover:-translate-y-1 hover:border-primary/30 hover:shadow-md"
+                >
+                  <div className={`aspect-[4/3] bg-gradient-to-br ${PROJECT_COLORS[i % PROJECT_COLORS.length]} flex items-center justify-center overflow-hidden`}>
+                    {project.thumbnail_url ? (
+                      <img src={project.thumbnail_url} alt={project.name} className="h-full w-full object-cover" />
+                    ) : (
+                      <span className="text-2xl font-bold text-foreground/20">{project.name.charAt(0).toUpperCase()}</span>
+                    )}
+                  </div>
+                  <div className="p-3">
+                    <p className="text-sm font-medium truncate">{project.name}</p>
+                    <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                      <Clock className="h-3 w-3" />
+                      {timeAgo(project.updated_at)}
+                    </div>
                   </div>
                 </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Recent Activity Feed */}
+      {activity.length > 0 && (
+        <div className="mt-10">
+          <h2 className="font-heading text-xl font-semibold mb-4">Recent Activity</h2>
+          <div className="rounded-xl border border-border/50 bg-card divide-y divide-border/50">
+            {activity.map((a) => (
+              <div key={a.id} className="flex items-center gap-3 p-3 text-sm">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 shrink-0">
+                  <Sparkles className="h-3.5 w-3.5 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="truncate"><span className="font-medium capitalize">{a.action}</span>{a.resource_type && <span className="text-muted-foreground"> · {a.resource_type}</span>}</p>
+                </div>
+                <span className="text-xs text-muted-foreground shrink-0">{timeAgo(a.created_at)}</span>
               </div>
             ))}
           </div>

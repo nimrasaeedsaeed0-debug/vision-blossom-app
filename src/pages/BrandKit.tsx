@@ -1,30 +1,143 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Palette, Type, Image, Plus, X } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Palette, Type, Image as ImageIcon, Plus, X, Upload, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+
+const ACCEPTED = "image/png,image/jpeg,image/jpg,image/svg+xml,image/webp";
+const MAX_BYTES = 5 * 1024 * 1024; // 5MB
 
 export default function BrandKit() {
+  const { user } = useAuth();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [brandName, setBrandName] = useState("My Brand");
-  const [colors, setColors] = useState(["#7C3AED", "#06B6D4", "#10B981", "#F59E0B"]);
+  const [colors, setColors] = useState<string[]>(["#7C3AED", "#06B6D4", "#10B981", "#F59E0B"]);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [newColor, setNewColor] = useState("#000000");
 
-  const addColor = () => {
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const { data } = await supabase
+        .from("brand_kits")
+        .select("*")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (data) {
+        setBrandName(data.brand_name);
+        setColors((data.colors as string[]) || []);
+        setLogoUrl(data.logo_url);
+      }
+      setLoading(false);
+    })();
+  }, [user]);
+
+  const persist = async (patch: Partial<{ brand_name: string; colors: string[]; logo_url: string | null }>) => {
+    if (!user) return;
+    setSaving(true);
+    const { error } = await supabase
+      .from("brand_kits")
+      .upsert(
+        {
+          user_id: user.id,
+          brand_name: patch.brand_name ?? brandName,
+          colors: patch.colors ?? colors,
+          logo_url: patch.logo_url ?? logoUrl,
+        },
+        { onConflict: "user_id" }
+      );
+    setSaving(false);
+    if (error) toast.error("Failed to save");
+  };
+
+  const addColor = async () => {
     if (colors.length >= 10) { toast.error("Max 10 colors"); return; }
-    setColors([...colors, newColor]);
+    const next = [...colors, newColor];
+    setColors(next);
+    await persist({ colors: next });
     toast.success("Color added");
   };
 
-  const removeColor = (index: number) => {
-    setColors(colors.filter((_, i) => i !== index));
+  const removeColor = async (index: number) => {
+    const next = colors.filter((_, i) => i !== index);
+    setColors(next);
+    await persist({ colors: next });
   };
+
+  const handleLogoSelect = () => fileInputRef.current?.click();
+
+  const handleLogoFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow re-selecting same file
+    if (!file || !user) return;
+
+    if (!ACCEPTED.split(",").includes(file.type)) {
+      toast.error("Use PNG, JPG, SVG, or WEBP");
+      return;
+    }
+    if (file.size > MAX_BYTES) {
+      toast.error("Logo must be under 5MB");
+      return;
+    }
+
+    setUploading(true);
+    const ext = file.name.split(".").pop() || "png";
+    const path = `${user.id}/logo-${Date.now()}.${ext}`;
+
+    const { error: upErr } = await supabase.storage
+      .from("brand-assets")
+      .upload(path, file, { upsert: true, contentType: file.type });
+
+    if (upErr) {
+      toast.error("Upload failed");
+      setUploading(false);
+      return;
+    }
+
+    const { data: pub } = supabase.storage.from("brand-assets").getPublicUrl(path);
+    const url = pub.publicUrl;
+    setLogoUrl(url);
+    await persist({ logo_url: url });
+    setUploading(false);
+    toast.success("Logo uploaded");
+  };
+
+  const removeLogo = async () => {
+    setLogoUrl(null);
+    await persist({ logo_url: null });
+    toast.success("Logo removed");
+  };
+
+  const handleNameBlur = () => persist({ brand_name: brandName });
+
+  if (loading) {
+    return (
+      <div className="container mx-auto max-w-4xl px-4 py-8">
+        <Skeleton className="h-8 w-48 mb-6" />
+        <div className="space-y-6">
+          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-40 rounded-xl" />)}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto max-w-4xl px-4 py-8 animate-fade-in">
-      <h1 className="mb-2 font-heading text-3xl font-bold">Brand Kit</h1>
-      <p className="mb-8 text-muted-foreground">Manage your brand identity in one place</p>
+      <div className="mb-8 flex items-center justify-between">
+        <div>
+          <h1 className="font-heading text-3xl font-bold">Brand Kit</h1>
+          <p className="text-muted-foreground">Manage your brand identity in one place</p>
+        </div>
+        {saving && <span className="text-xs text-muted-foreground">Saving…</span>}
+      </div>
 
       <div className="space-y-6">
         {/* Brand Name */}
@@ -33,7 +146,12 @@ export default function BrandKit() {
             <CardTitle className="font-heading text-base">Brand Name</CardTitle>
           </CardHeader>
           <CardContent>
-            <Input value={brandName} onChange={(e) => setBrandName(e.target.value)} className="max-w-sm" />
+            <Input
+              value={brandName}
+              onChange={(e) => setBrandName(e.target.value)}
+              onBlur={handleNameBlur}
+              className="max-w-sm"
+            />
           </CardContent>
         </Card>
 
@@ -68,7 +186,7 @@ export default function BrandKit() {
         <Card>
           <CardHeader>
             <CardTitle className="font-heading text-base flex items-center gap-2">
-              <Type className="h-4 w-4 text-cyan" /> Brand Fonts
+              <Type className="h-4 w-4 text-primary" /> Brand Fonts
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -89,21 +207,56 @@ export default function BrandKit() {
           </CardContent>
         </Card>
 
-        {/* Logos */}
+        {/* Logo */}
         <Card>
           <CardHeader>
             <CardTitle className="font-heading text-base flex items-center gap-2">
-              <Image className="h-4 w-4 text-success" /> Brand Logos
+              <ImageIcon className="h-4 w-4 text-primary" /> Brand Logo
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center justify-center rounded-xl border-2 border-dashed border-border/50 p-12 text-center">
-              <div>
-                <Image className="mx-auto mb-3 h-10 w-10 text-muted-foreground/30" />
-                <p className="text-sm text-muted-foreground">Drag & drop your logo here</p>
-                <Button size="sm" variant="outline" className="mt-3">Upload Logo</Button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept={ACCEPTED}
+              onChange={handleLogoFile}
+              className="hidden"
+            />
+            {logoUrl ? (
+              <div className="flex items-center gap-4 rounded-xl border p-4">
+                <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-lg border bg-muted/30 p-2">
+                  <img src={logoUrl} alt="Brand logo" className="max-h-full max-w-full object-contain" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium">Logo uploaded</p>
+                  <p className="text-xs text-muted-foreground truncate">{logoUrl.split("/").pop()}</p>
+                  <div className="mt-3 flex gap-2">
+                    <Button size="sm" variant="outline" onClick={handleLogoSelect} disabled={uploading}>
+                      {uploading ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Upload className="mr-1 h-3 w-3" />}
+                      Replace
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={removeLogo} className="text-destructive hover:text-destructive">
+                      <Trash2 className="mr-1 h-3 w-3" /> Remove
+                    </Button>
+                  </div>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div
+                className="flex items-center justify-center rounded-xl border-2 border-dashed border-border/50 p-12 text-center cursor-pointer hover:border-primary/40 transition-colors"
+                onClick={handleLogoSelect}
+              >
+                <div>
+                  <ImageIcon className="mx-auto mb-3 h-10 w-10 text-muted-foreground/30" />
+                  <p className="text-sm text-muted-foreground">Click to upload your logo</p>
+                  <p className="text-xs text-muted-foreground/70 mt-1">PNG, JPG, SVG or WEBP — up to 5MB</p>
+                  <Button size="sm" variant="outline" className="mt-3" disabled={uploading}>
+                    {uploading ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Upload className="mr-1 h-3 w-3" />}
+                    Upload Logo
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
