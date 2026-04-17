@@ -4,14 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
-import { Crown, Search, Sparkles, X, Eye, ChevronRight, Loader2 } from "lucide-react";
+import { Crown, Search, Sparkles, X, Eye, ChevronRight, Loader2, Upload, Wand2 } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 
 // Thumbnail imports
@@ -68,16 +65,35 @@ const TEMPLATES: Template[] = [
 ];
 
 const CATEGORIES = [
-  "All",
-  "Social Media",
-  "Presentations",
-  "Posters",
-  "Business Cards",
-  "Infographics",
-  "Resumes",
-  "Banners",
-  "Invitations",
+  "All", "Social Media", "Presentations", "Posters",
+  "Business Cards", "Infographics", "Resumes", "Banners", "Invitations",
 ];
+
+// Per-category visual styles — each category gets a UNIQUE look
+type CategoryStyle = {
+  cardShape: string;        // border radius / shape
+  aspectRatio: string;      // template card aspect
+  accent: string;           // accent border color
+  titleClass: string;       // typography
+  layout: "default" | "wide" | "square" | "portrait" | "compact";
+  badge?: string;
+};
+
+const CATEGORY_STYLES: Record<string, CategoryStyle> = {
+  "Social Media":   { cardShape: "rounded-2xl", aspectRatio: "aspect-[9/16]", accent: "border-primary/40", titleClass: "font-heading font-bold tracking-tight", layout: "portrait", badge: "📱" },
+  "Presentations":  { cardShape: "rounded-md",  aspectRatio: "aspect-[16/9]", accent: "border-cyan-500/30", titleClass: "font-heading font-semibold", layout: "wide", badge: "🎤" },
+  "Posters":        { cardShape: "rounded-3xl", aspectRatio: "aspect-[3/4]",  accent: "border-warning/40", titleClass: "font-heading font-extrabold uppercase tracking-wider text-xs", layout: "default", badge: "🎨" },
+  "Business Cards": { cardShape: "rounded-lg",  aspectRatio: "aspect-[7/4]",  accent: "border-foreground/20", titleClass: "font-heading font-medium tracking-wide", layout: "wide", badge: "💼" },
+  "Infographics":   { cardShape: "rounded-xl",  aspectRatio: "aspect-[4/5]",  accent: "border-emerald-500/30", titleClass: "font-mono font-medium text-xs", layout: "default", badge: "📊" },
+  "Resumes":        { cardShape: "rounded-sm",  aspectRatio: "aspect-[3/4]",  accent: "border-foreground/30", titleClass: "font-heading font-light tracking-wide", layout: "default", badge: "📄" },
+  "Banners":        { cardShape: "rounded-xl",  aspectRatio: "aspect-[21/9]", accent: "border-primary/30", titleClass: "font-heading font-bold", layout: "wide", badge: "🖼️" },
+  "Invitations":    { cardShape: "rounded-[2rem]", aspectRatio: "aspect-[2/3]", accent: "border-rose-400/40", titleClass: "font-heading italic font-light", layout: "portrait", badge: "💌" },
+};
+
+const DEFAULT_STYLE: CategoryStyle = {
+  cardShape: "rounded-xl", aspectRatio: "aspect-[3/4]", accent: "border-border/50",
+  titleClass: "font-heading font-semibold", layout: "default",
+};
 
 // ── Search index ───────────────────────────────────────────────────────
 
@@ -102,37 +118,20 @@ function buildSearchIndex(templates: Template[]): Map<string, Set<string>> {
 }
 
 const SEARCH_INDEX = buildSearchIndex(TEMPLATES);
-const TEMPLATE_MAP = new Map(TEMPLATES.map((t) => [t.id, t]));
 
 const CATEGORY_COUNTS: Record<string, number> = TEMPLATES.reduce(
-  (acc, t) => {
-    acc[t.category] = (acc[t.category] || 0) + 1;
-    return acc;
-  },
+  (acc, t) => { acc[t.category] = (acc[t.category] || 0) + 1; return acc; },
   { All: TEMPLATES.length } as Record<string, number>
 );
 
-// ── Highlight helper ───────────────────────────────────────────────────
-
 function highlightText(text: string, query: string): React.ReactNode {
   if (!query || query.length < 2) return text;
-  const regex = new RegExp(
-    `(${query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`,
-    "gi"
-  );
+  const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "gi");
   const parts = text.split(regex);
   return parts.map((part, i) =>
-    regex.test(part) ? (
-      <mark key={i} className="bg-primary/30 text-foreground rounded-sm px-0.5">
-        {part}
-      </mark>
-    ) : (
-      part
-    )
+    regex.test(part) ? <mark key={i} className="bg-primary/30 text-foreground rounded-sm px-0.5">{part}</mark> : part
   );
 }
-
-// ── useDebounce ────────────────────────────────────────────────────────
 
 function useDebounce(value: string, delay: number): string {
   const [debounced, setDebounced] = useState(value);
@@ -143,13 +142,11 @@ function useDebounce(value: string, delay: number): string {
   return debounced;
 }
 
-// ── Lazy Image Card ────────────────────────────────────────────────────
+// ── Lazy Image ─────────────────────────────────────────────────────────
 
 const LazyTemplateImage = React.memo(function LazyTemplateImage({
-  template,
-}: {
-  template: Template;
-}) {
+  template, aspectRatio,
+}: { template: Template; aspectRatio: string }) {
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
   const [loaded, setLoaded] = useState(false);
@@ -157,51 +154,32 @@ const LazyTemplateImage = React.memo(function LazyTemplateImage({
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const obs = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setVisible(true);
-          obs.disconnect();
-        }
-      },
-      { rootMargin: "200px" }
-    );
+    const obs = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting) { setVisible(true); obs.disconnect(); }
+    }, { rootMargin: "200px" });
     obs.observe(el);
     return () => obs.disconnect();
   }, []);
 
   return (
-    <div ref={ref} className="relative aspect-[3/4] overflow-hidden">
-      {/* Gradient fallback always rendered for CLS prevention */}
-      <div
-        className={`absolute inset-0 bg-gradient-to-br ${template.color} flex items-center justify-center`}
-      >
-        <span className="text-5xl font-bold text-foreground/10 select-none">
-          {template.name.charAt(0)}
-        </span>
+    <div ref={ref} className={`relative ${aspectRatio} overflow-hidden`}>
+      <div className={`absolute inset-0 bg-gradient-to-br ${template.color} flex items-center justify-center`}>
+        <span className="text-5xl font-bold text-foreground/10 select-none">{template.name.charAt(0)}</span>
       </div>
-
-      {/* Actual image */}
       {visible && template.thumbnail && (
         <img
           src={template.thumbnail}
           alt={`Template: ${template.name}`}
           loading="lazy"
           onLoad={() => setLoaded(true)}
-          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${
-            loaded ? "opacity-100" : "opacity-0"
-          }`}
+          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${loaded ? "opacity-100" : "opacity-0"}`}
         />
       )}
-
-      {/* Pro badge */}
       {template.isPro && (
-        <div className="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-amber-500/20 backdrop-blur-sm px-2 py-0.5 text-xs font-semibold text-amber-400 z-10">
+        <div className="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-warning/20 backdrop-blur-sm px-2 py-0.5 text-xs font-semibold text-warning z-10">
           <Crown className="h-3 w-3" /> Pro
         </div>
       )}
-
-      {/* New badge for AI generated */}
       {template.isNew && (
         <div className="absolute top-2 left-2 flex items-center gap-1 rounded-full bg-cyan-500/20 backdrop-blur-sm px-2 py-0.5 text-xs font-semibold text-cyan-400 z-10">
           <Sparkles className="h-3 w-3" /> New
@@ -211,65 +189,49 @@ const LazyTemplateImage = React.memo(function LazyTemplateImage({
   );
 });
 
-// ── Template Card ──────────────────────────────────────────────────────
+// ── Template Card (per-category styled) ────────────────────────────────
 
 const TemplateCard = React.memo(function TemplateCard({
-  template,
-  query,
-  onPreview,
-  onUse,
+  template, query, onPreview, onUse,
 }: {
   template: Template;
   query: string;
   onPreview: (t: Template) => void;
   onUse: (t: Template) => void;
 }) {
+  const style = CATEGORY_STYLES[template.category] || DEFAULT_STYLE;
+
   return (
     <div
-      className="group cursor-pointer overflow-hidden rounded-xl border border-border/50 bg-card transition-all duration-200 hover:scale-[1.02] hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 focus-within:ring-2 focus-within:ring-primary"
+      className={`group cursor-pointer overflow-hidden ${style.cardShape} border-2 ${style.accent} bg-card transition-all duration-200 hover:scale-[1.02] hover:shadow-lg hover:shadow-primary/10 focus-within:ring-2 focus-within:ring-primary`}
       tabIndex={0}
       role="article"
       aria-label={`Template: ${template.name}`}
       onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          onUse(template);
-        }
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onUse(template); }
       }}
     >
       <div className="relative">
-        <LazyTemplateImage template={template} />
-
-        {/* Hover overlay */}
-        <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/40 opacity-0 transition-opacity duration-200 group-hover:opacity-100 z-20">
+        <LazyTemplateImage template={template} aspectRatio={style.aspectRatio} />
+        <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/50 opacity-0 transition-opacity duration-200 group-hover:opacity-100 z-20">
           <Button
-            size="sm"
-            variant="outline"
+            size="sm" variant="outline"
             className="border-white/50 bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 hover:text-white"
-            onClick={(e) => {
-              e.stopPropagation();
-              onPreview(template);
-            }}
+            onClick={(e) => { e.stopPropagation(); onPreview(template); }}
           >
-            <Eye className="mr-1 h-3 w-3" /> Preview
+            <Eye className="mr-1 h-3 w-3" /> Preview Template
           </Button>
-          <Button
-            size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              onUse(template);
-            }}
-          >
+          <Button size="sm" onClick={(e) => { e.stopPropagation(); onUse(template); }}>
             Use Template
           </Button>
         </div>
       </div>
-
-      <div className="p-3">
-        <p className="text-sm font-medium truncate">
+      <div className={style.layout === "wide" ? "p-2.5" : "p-3"}>
+        <p className={`${style.titleClass} truncate`}>
+          {style.badge && <span className="mr-1">{style.badge}</span>}
           {highlightText(template.name, query)}
         </p>
-        <p className="text-xs text-muted-foreground">{template.category}</p>
+        <p className="text-xs text-muted-foreground mt-0.5">{template.category}</p>
       </div>
     </div>
   );
@@ -279,7 +241,9 @@ const TemplateCard = React.memo(function TemplateCard({
 
 export default function Templates() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const categoryParam = searchParams.get("category") || "All";
   const queryParam = searchParams.get("q") || "";
@@ -288,13 +252,18 @@ export default function Templates() {
   const debouncedQuery = useDebounce(searchInput, 120);
 
   const [previewTemplate, setPreviewTemplate] = useState<Template | null>(null);
+  const [useTemplateOpen, setUseTemplateOpen] = useState<Template | null>(null);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [aiPrompt, setAiPrompt] = useState("");
   const [aiOpen, setAiOpen] = useState(false);
   const [aiGenerating, setAiGenerating] = useState(false);
   const [sessionTemplates, setSessionTemplates] = useState<Template[]>([]);
 
-  // Sync URL params
+  // Use Template flow state
+  const [usePrompt, setUsePrompt] = useState("");
+  const [useGenerating, setUseGenerating] = useState(false);
+  const [useUploading, setUseUploading] = useState(false);
+
   useEffect(() => {
     const params: Record<string, string> = {};
     if (categoryParam !== "All") params.category = categoryParam;
@@ -302,59 +271,31 @@ export default function Templates() {
     setSearchParams(params, { replace: true });
   }, [categoryParam, debouncedQuery, setSearchParams]);
 
-  const setCategory = useCallback(
-    (cat: string) => {
-      const params: Record<string, string> = {};
-      if (cat !== "All") params.category = cat;
-      if (debouncedQuery) params.q = debouncedQuery;
-      setSearchParams(params, { replace: true });
-    },
-    [debouncedQuery, setSearchParams]
-  );
+  const setCategory = useCallback((cat: string) => {
+    const params: Record<string, string> = {};
+    if (cat !== "All") params.category = cat;
+    if (debouncedQuery) params.q = debouncedQuery;
+    setSearchParams(params, { replace: true });
+  }, [debouncedQuery, setSearchParams]);
 
-  const allTemplates = useMemo(
-    () => [...sessionTemplates, ...TEMPLATES],
-    [sessionTemplates]
-  );
+  const allTemplates = useMemo(() => [...sessionTemplates, ...TEMPLATES], [sessionTemplates]);
 
-  // Filtering
   const filtered = useMemo(() => {
     let ids: Set<string> | null = null;
-
     if (debouncedQuery && debouncedQuery.length >= 2) {
-      const words = debouncedQuery
-        .toLowerCase()
-        .split(/\s+/)
-        .filter((w) => w.length >= 2);
-
+      const words = debouncedQuery.toLowerCase().split(/\s+/).filter((w) => w.length >= 2);
       for (const word of words) {
         const matchingIds = SEARCH_INDEX.get(word);
-        if (!matchingIds) {
-          // Only check session templates
-          ids = new Set<string>();
-          break;
-        }
-        if (ids === null) {
-          ids = new Set(matchingIds);
-        } else {
-          ids = new Set([...ids].filter((id) => matchingIds.has(id)));
-        }
+        if (!matchingIds) { ids = new Set(); break; }
+        ids = ids === null ? new Set(matchingIds) : new Set([...ids].filter((id) => matchingIds.has(id)));
       }
-
-      // Also search session templates
       const sessionMatches = sessionTemplates.filter((t) => {
-        const hay =
-          `${t.name} ${t.category} ${t.tags.join(" ")} ${t.description}`.toLowerCase();
+        const hay = `${t.name} ${t.category} ${t.tags.join(" ")} ${t.description}`.toLowerCase();
         return words.every((w) => hay.includes(w));
       });
       const sessionIds = new Set(sessionMatches.map((t) => t.id));
-      if (ids) {
-        ids = new Set([...ids, ...sessionIds]);
-      } else {
-        ids = sessionIds;
-      }
+      ids = ids ? new Set([...ids, ...sessionIds]) : sessionIds;
     }
-
     return allTemplates.filter((t) => {
       if (ids && !ids.has(t.id)) return false;
       if (categoryParam !== "All" && t.category !== categoryParam) return false;
@@ -362,51 +303,127 @@ export default function Templates() {
     });
   }, [debouncedQuery, categoryParam, allTemplates, sessionTemplates]);
 
-  const handleUseTemplate = useCallback(
-    (t: Template) => {
-      if (t.isPro) {
-        setUpgradeOpen(true);
-        return;
-      }
-      toast.success(`Creating project from "${t.name}"...`);
-      navigate(`/editor?template=${t.id}`);
-    },
-    [navigate]
-  );
+  // Group by category when "All"
+  const grouped = useMemo(() => {
+    if (categoryParam !== "All") return null;
+    const map = new Map<string, Template[]>();
+    for (const t of filtered) {
+      if (!map.has(t.category)) map.set(t.category, []);
+      map.get(t.category)!.push(t);
+    }
+    return Array.from(map.entries());
+  }, [filtered, categoryParam]);
 
-  const handlePreview = useCallback((t: Template) => {
-    setPreviewTemplate(t);
+  const handleUseTemplate = useCallback((t: Template) => {
+    if (t.isPro) { setUpgradeOpen(true); return; }
+    setUseTemplateOpen(t);
+    setUsePrompt(`A ${t.name.toLowerCase()} for `);
   }, []);
 
+  const handlePreview = useCallback((t: Template) => setPreviewTemplate(t), []);
+
+  // Create project from template
+  const createProjectFromTemplate = async (t: Template, opts: { thumbnail?: string }) => {
+    if (!user) {
+      toast.error("Please sign in");
+      return null;
+    }
+    const { data, error } = await supabase
+      .from("projects")
+      .insert({
+        user_id: user.id,
+        name: t.name,
+        type: t.category.toLowerCase().replace(/\s+/g, "-"),
+        template_id: t.id,
+        thumbnail_url: opts.thumbnail || t.thumbnail || null,
+      })
+      .select()
+      .single();
+    if (error || !data) {
+      toast.error("Failed to create project");
+      return null;
+    }
+    return data.id as string;
+  };
+
+  // Upload file path
+  const handleUploadClick = () => fileInputRef.current?.click();
+
+  const handleUploadFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !useTemplateOpen || !user) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please choose an image file");
+      return;
+    }
+    setUseUploading(true);
+    try {
+      const ext = file.name.split(".").pop() || "png";
+      const path = `${user.id}/uploads/${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from("generated-images")
+        .upload(path, file, { upsert: false, contentType: file.type });
+      if (upErr) throw upErr;
+      const { data: pub } = supabase.storage.from("generated-images").getPublicUrl(path);
+      const projectId = await createProjectFromTemplate(useTemplateOpen, { thumbnail: pub.publicUrl });
+      if (projectId) {
+        toast.success("Project created from upload");
+        setUseTemplateOpen(null);
+        navigate(`/editor?project=${projectId}`);
+      }
+    } catch {
+      toast.error("Upload failed");
+    } finally {
+      setUseUploading(false);
+    }
+  };
+
+  // AI generate path
+  const handleUseAiGenerate = async () => {
+    if (!useTemplateOpen || !usePrompt.trim()) return;
+    setUseGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-image", {
+        body: { prompt: usePrompt.trim(), size: "1:1", count: 1 },
+      });
+      if (error) throw error;
+      const img = data?.images?.[0];
+      const projectId = await createProjectFromTemplate(useTemplateOpen, { thumbnail: img });
+      if (projectId) {
+        toast.success("AI-generated project created");
+        setUseTemplateOpen(null);
+        navigate(`/editor?project=${projectId}`);
+      }
+    } catch (err: unknown) {
+      const m = err instanceof Error ? err.message : "Generation failed";
+      toast.error(m);
+    } finally {
+      setUseGenerating(false);
+    }
+  };
+
+  // Top-level AI Template generation (existing)
   const handleAiGenerate = useCallback(async () => {
     if (!aiPrompt.trim()) return;
     setAiGenerating(true);
-
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData?.session?.access_token;
-
       if (!token) {
         toast.error("Please sign in to generate templates with AI");
         setAiGenerating(false);
         return;
       }
-
-      const { data, error } = await supabase.functions.invoke(
-        "generate-template",
-        {
-          body: { prompt: aiPrompt.trim() },
-        }
-      );
-
+      const { data, error } = await supabase.functions.invoke("generate-template", {
+        body: { prompt: aiPrompt.trim() },
+      });
       if (error) throw error;
-
       const newTemplate: Template = {
         ...data.template,
         isNew: true,
         color: "from-cyan-500/40 to-primary/30",
       };
-
       setSessionTemplates((prev) => [newTemplate, ...prev]);
       setAiPrompt("");
       toast.success("Template generated with AI!");
@@ -418,28 +435,34 @@ export default function Templates() {
     }
   }, [aiPrompt]);
 
+  const renderGrid = (items: Template[]) => (
+    <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))" }}>
+      {items.map((t) => (
+        <TemplateCard
+          key={t.id} template={t} query={debouncedQuery}
+          onPreview={handlePreview} onUse={handleUseTemplate}
+        />
+      ))}
+    </div>
+  );
+
   return (
     <div className="container mx-auto max-w-6xl px-4 py-8 animate-fade-in">
       <h1 className="mb-2 font-heading text-3xl font-bold">Templates</h1>
-      <p className="mb-6 text-muted-foreground">
-        Start with a professionally designed template
-      </p>
+      <p className="mb-6 text-muted-foreground">Start with a professionally designed template</p>
 
       {/* Search */}
       <div className="relative mb-4 max-w-md">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Search templates..."
-          className="pl-10"
-          value={searchInput}
-          onChange={(e) => setSearchInput(e.target.value)}
+          placeholder="Search templates..." className="pl-10"
+          value={searchInput} onChange={(e) => setSearchInput(e.target.value)}
           aria-label="Search templates"
         />
         {searchInput && (
           <button
             className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-            onClick={() => setSearchInput("")}
-            aria-label="Clear search"
+            onClick={() => setSearchInput("")} aria-label="Clear search"
           >
             <X className="h-4 w-4" />
           </button>
@@ -453,63 +476,34 @@ export default function Templates() {
           className="flex items-center gap-2 text-sm font-medium text-cyan-400 hover:text-cyan-300 transition-colors"
           aria-expanded={aiOpen}
         >
-          <Sparkles className="h-4 w-4" />
-          Generate with AI
-          <ChevronRight
-            className={`h-3 w-3 transition-transform duration-200 ${aiOpen ? "rotate-90" : ""}`}
-          />
+          <Sparkles className="h-4 w-4" /> Generate with AI
+          <ChevronRight className={`h-3 w-3 transition-transform duration-200 ${aiOpen ? "rotate-90" : ""}`} />
         </button>
         {aiOpen && (
           <div className="mt-3 flex gap-2 max-w-lg animate-fade-in">
             <Input
               placeholder='Describe a template (e.g., "dark minimal LinkedIn banner")...'
-              value={aiPrompt}
-              onChange={(e) => setAiPrompt(e.target.value)}
+              value={aiPrompt} onChange={(e) => setAiPrompt(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && !aiGenerating && handleAiGenerate()}
-              className="flex-1"
-              disabled={aiGenerating}
+              className="flex-1" disabled={aiGenerating}
             />
-            <Button
-              onClick={handleAiGenerate}
-              disabled={aiGenerating || !aiPrompt.trim()}
-              size="sm"
-              className="min-w-[100px]"
-            >
-              {aiGenerating ? (
-                <>
-                  <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                  Creating...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="mr-1 h-3 w-3" />
-                  Generate
-                </>
-              )}
+            <Button onClick={handleAiGenerate} disabled={aiGenerating || !aiPrompt.trim()} size="sm" className="min-w-[100px]">
+              {aiGenerating ? <><Loader2 className="mr-1 h-3 w-3 animate-spin" />Creating...</> : <><Sparkles className="mr-1 h-3 w-3" />Generate</>}
             </Button>
           </div>
         )}
       </div>
 
       {/* Category filters */}
-      <div
-        className="mb-8 flex flex-wrap gap-2"
-        role="group"
-        aria-label="Filter by category"
-      >
+      <div className="mb-8 flex flex-wrap gap-2" role="group" aria-label="Filter by category">
         {CATEGORIES.map((cat) => (
           <Button
-            key={cat}
-            variant={categoryParam === cat ? "default" : "outline"}
-            size="sm"
-            onClick={() => setCategory(cat)}
-            className="rounded-full transition-all duration-200"
+            key={cat} variant={categoryParam === cat ? "default" : "outline"} size="sm"
+            onClick={() => setCategory(cat)} className="rounded-full transition-all duration-200"
             aria-pressed={categoryParam === cat}
           >
             {cat}
-            <span className="ml-1 text-xs opacity-60">
-              ({CATEGORY_COUNTS[cat] || 0})
-            </span>
+            <span className="ml-1 text-xs opacity-60">({CATEGORY_COUNTS[cat] || 0})</span>
           </Button>
         ))}
       </div>
@@ -535,104 +529,122 @@ export default function Templates() {
 
       {/* Grid */}
       {filtered.length > 0 ? (
-        <div
-          className="grid gap-4"
-          style={{
-            gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
-          }}
-        >
-          {filtered.map((t) => (
-            <TemplateCard
-              key={t.id}
-              template={t}
-              query={debouncedQuery}
-              onPreview={handlePreview}
-              onUse={handleUseTemplate}
-            />
-          ))}
-        </div>
+        grouped ? (
+          <div className="space-y-12">
+            {grouped.map(([cat, items]) => {
+              const style = CATEGORY_STYLES[cat] || DEFAULT_STYLE;
+              return (
+                <section key={cat}>
+                  <div className="mb-4 flex items-end justify-between border-b border-border/50 pb-2">
+                    <h2 className={`text-xl ${style.titleClass} flex items-center gap-2`}>
+                      {style.badge && <span>{style.badge}</span>} {cat}
+                    </h2>
+                    <span className="text-xs text-muted-foreground">{items.length} templates</span>
+                  </div>
+                  {renderGrid(items)}
+                </section>
+              );
+            })}
+          </div>
+        ) : (
+          renderGrid(filtered)
+        )
       ) : (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <Search className="h-12 w-12 text-muted-foreground/30 mb-4" />
-          <p className="text-lg font-medium text-muted-foreground">
-            No templates found
-          </p>
-          <p className="text-sm text-muted-foreground/70 mt-1 mb-4">
-            Try different keywords or generate one with AI
-          </p>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              setAiOpen(true);
-              setSearchInput("");
-            }}
-          >
+          <p className="text-lg font-medium text-muted-foreground">No templates found</p>
+          <p className="text-sm text-muted-foreground/70 mt-1 mb-4">Try different keywords or generate one with AI</p>
+          <Button variant="outline" size="sm" onClick={() => { setAiOpen(true); setSearchInput(""); }}>
             <Sparkles className="mr-1 h-4 w-4" /> Generate with AI
           </Button>
         </div>
       )}
 
-      {/* Preview Modal */}
-      <Dialog
-        open={!!previewTemplate}
-        onOpenChange={(open) => !open && setPreviewTemplate(null)}
-      >
-        <DialogContent className="max-w-2xl">
+      {/* Preview Modal — full-screen */}
+      <Dialog open={!!previewTemplate} onOpenChange={(o) => !o && setPreviewTemplate(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           {previewTemplate && (
             <>
               <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
+                <DialogTitle className="flex items-center gap-2 font-heading text-2xl">
                   {previewTemplate.name}
                   {previewTemplate.isPro && (
-                    <span className="flex items-center gap-1 rounded-full bg-amber-500/20 px-2 py-0.5 text-xs font-semibold text-amber-400">
+                    <span className="flex items-center gap-1 rounded-full bg-warning/20 px-2 py-0.5 text-xs font-semibold text-warning">
                       <Crown className="h-3 w-3" /> Pro
                     </span>
                   )}
                 </DialogTitle>
-                <DialogDescription>
-                  {previewTemplate.description}
-                </DialogDescription>
+                <DialogDescription>{previewTemplate.description}</DialogDescription>
               </DialogHeader>
-              <div className="relative aspect-[3/4] w-full rounded-lg overflow-hidden">
+              <div className="relative w-full rounded-lg overflow-hidden bg-muted/20">
                 {previewTemplate.thumbnail ? (
-                  <img
-                    src={previewTemplate.thumbnail}
-                    alt={previewTemplate.name}
-                    className="w-full h-full object-cover"
-                  />
+                  <img src={previewTemplate.thumbnail} alt={previewTemplate.name} className="w-full max-h-[60vh] object-contain mx-auto" />
                 ) : (
-                  <div
-                    className={`w-full h-full bg-gradient-to-br ${previewTemplate.color} flex items-center justify-center`}
-                  >
-                    <span className="text-6xl font-bold text-foreground/10 select-none">
-                      {previewTemplate.name.charAt(0)}
-                    </span>
+                  <div className={`w-full aspect-[3/4] bg-gradient-to-br ${previewTemplate.color} flex items-center justify-center`}>
+                    <span className="text-6xl font-bold text-foreground/10 select-none">{previewTemplate.name.charAt(0)}</span>
                   </div>
                 )}
               </div>
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs px-2 py-1 rounded-full bg-muted text-muted-foreground">
-                  {previewTemplate.category}
-                </span>
+                <span className="text-xs px-2 py-1 rounded-full bg-muted text-muted-foreground">{previewTemplate.category}</span>
                 {previewTemplate.tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="text-xs px-2 py-1 rounded-full bg-muted/50 text-muted-foreground"
-                  >
-                    {tag}
-                  </span>
+                  <span key={tag} className="text-xs px-2 py-1 rounded-full bg-muted/50 text-muted-foreground">{tag}</span>
                 ))}
               </div>
-              <Button
-                className="w-full"
-                onClick={() => {
-                  setPreviewTemplate(null);
-                  handleUseTemplate(previewTemplate);
-                }}
-              >
+              <Button className="w-full" onClick={() => { const t = previewTemplate; setPreviewTemplate(null); handleUseTemplate(t); }}>
                 Use Template
               </Button>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Use Template Modal — Upload OR AI Generate */}
+      <Dialog open={!!useTemplateOpen} onOpenChange={(o) => !o && setUseTemplateOpen(null)}>
+        <DialogContent className="max-w-2xl">
+          {useTemplateOpen && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Use "{useTemplateOpen.name}"</DialogTitle>
+                <DialogDescription>Choose how you'd like to bring content into your project.</DialogDescription>
+              </DialogHeader>
+
+              <input
+                ref={fileInputRef} type="file" accept="image/*"
+                onChange={handleUploadFile} className="hidden"
+              />
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                {/* Upload */}
+                <div className="rounded-xl border-2 border-dashed border-border/50 p-6 text-center hover:border-primary/40 transition-colors">
+                  <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+                    <Upload className="h-6 w-6 text-primary" />
+                  </div>
+                  <h3 className="font-heading font-semibold mb-1">Upload File</h3>
+                  <p className="text-xs text-muted-foreground mb-4">Bring your own image (PNG, JPG, WEBP)</p>
+                  <Button onClick={handleUploadClick} disabled={useUploading || useGenerating} className="w-full">
+                    {useUploading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Uploading...</> : <><Upload className="mr-2 h-4 w-4" /> Choose File</>}
+                  </Button>
+                </div>
+
+                {/* AI Generate */}
+                <div className="rounded-xl border-2 border-cyan-500/30 bg-cyan-500/5 p-6 text-center">
+                  <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-lg bg-cyan-500/10">
+                    <Wand2 className="h-6 w-6 text-cyan-400" />
+                  </div>
+                  <h3 className="font-heading font-semibold mb-1">AI Generate</h3>
+                  <p className="text-xs text-muted-foreground mb-4">Describe what you want, AI creates it</p>
+                  <Input
+                    placeholder="A vibrant fitness brand..."
+                    value={usePrompt} onChange={(e) => setUsePrompt(e.target.value)}
+                    className="mb-2 text-sm"
+                    disabled={useGenerating}
+                  />
+                  <Button onClick={handleUseAiGenerate} disabled={useGenerating || useUploading || !usePrompt.trim()} className="w-full">
+                    {useGenerating ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating...</> : <><Sparkles className="mr-2 h-4 w-4" /> Generate</>}
+                  </Button>
+                </div>
+              </div>
             </>
           )}
         </DialogContent>
@@ -643,23 +655,14 @@ export default function Templates() {
         <DialogContent className="max-w-md text-center">
           <DialogHeader>
             <DialogTitle className="flex items-center justify-center gap-2">
-              <Crown className="h-5 w-5 text-amber-400" /> Upgrade to Pro
+              <Crown className="h-5 w-5 text-warning" /> Upgrade to Pro
             </DialogTitle>
             <DialogDescription>
-              This template is available on the Pro plan. Unlock all Pro
-              templates, unlimited AI generations, and more.
+              This template is available on the Pro plan. Unlock all Pro templates, unlimited AI generations, and more.
             </DialogDescription>
           </DialogHeader>
-          <Button className="w-full" onClick={() => navigate("/pricing")}>
-            View Plans
-          </Button>
-          <Button
-            variant="ghost"
-            className="w-full"
-            onClick={() => setUpgradeOpen(false)}
-          >
-            Maybe later
-          </Button>
+          <Button className="w-full" onClick={() => navigate("/pricing")}>View Plans</Button>
+          <Button variant="ghost" className="w-full" onClick={() => setUpgradeOpen(false)}>Maybe later</Button>
         </DialogContent>
       </Dialog>
     </div>
