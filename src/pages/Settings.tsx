@@ -136,7 +136,7 @@ export default function Settings() {
           <CardContent>
             <div className="flex items-center justify-between rounded-lg border p-4">
               <div className="flex items-center gap-3">
-                {theme === "dark" ? <Moon className="h-5 w-5 text-primary" /> : <Sun className="h-5 w-5 text-amber-500" />}
+                {theme === "dark" ? <Moon className="h-5 w-5 text-primary" /> : <Sun className="h-5 w-5 text-warning" />}
                 <div>
                   <p className="text-sm font-medium">{theme === "dark" ? "Dark Mode" : "Light Mode"}</p>
                   <p className="text-xs text-muted-foreground">
