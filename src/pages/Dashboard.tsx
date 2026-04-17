@@ -14,6 +14,7 @@ import {
   Plus, Zap, Upload, LayoutGrid, FolderOpen, MoreHorizontal, Clock
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { logActivity } from "@/lib/activity";
 
 const SIZES = [
   { label: "1:1", value: "1:1", w: 1024, h: 1024 },
@@ -107,6 +108,7 @@ export default function Dashboard() {
     if (!prompt.trim()) { toast.error("Please enter a prompt"); return; }
     setGenerating(true);
     setImages([]);
+    let resultImages: string[] = [];
     try {
       const sizeConfig = SIZES.find((s) => s.value === size) || SIZES[0];
       if (provider === "huggingface") {
@@ -114,20 +116,26 @@ export default function Dashboard() {
           body: { prompt: `${style} style: ${prompt}`, negativePrompt: negativePrompt || undefined, width: sizeConfig.w, height: sizeConfig.h, guidanceScale, count: 2 },
         });
         if (error) throw error;
-        if (data?.images) setImages(data.images);
+        if (data?.images) { resultImages = data.images; setImages(data.images); }
         else toast.error("No images returned");
       } else {
         const { data, error } = await supabase.functions.invoke("generate-image", {
           body: { prompt: `${style} style: ${prompt}`, size, count: 2 },
         });
         if (error) throw error;
-        if (data?.images) setImages(data.images);
+        if (data?.images) { resultImages = data.images; setImages(data.images); }
         else toast.error("No images returned");
       }
-      if (user) {
+      if (user && resultImages.length > 0) {
         await supabase.from("generations").insert({
-          user_id: user.id, prompt: `${style} style: ${prompt}`, style, size, image_urls: images.length > 0 ? images : undefined,
+          user_id: user.id,
+          prompt: `${style} style: ${prompt}`,
+          style, size,
+          image_urls: resultImages,
+          tool: "text-to-image",
+          output_type: "image",
         });
+        await logActivity(user.id, "generated images", "image", undefined, { count: resultImages.length, prompt });
       }
     } catch (err: any) {
       if (err?.status === 429) toast.error("Rate limited — please wait and try again.");
