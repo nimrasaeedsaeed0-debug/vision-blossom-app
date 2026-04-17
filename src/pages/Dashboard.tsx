@@ -74,11 +74,34 @@ export default function Dashboard() {
   const [enhancing, setEnhancing] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [activeTab, setActiveTab] = useState<"create" | "projects">("create");
+  const [recentProjects, setRecentProjects] = useState<RecentProject[]>([]);
+  const [activity, setActivity] = useState<ActivityItem[]>([]);
 
   useEffect(() => {
     const p = searchParams.get("prompt");
     if (p) setPrompt(p);
+    const sz = searchParams.get("size");
+    if (sz) setSize(sz);
+    const st = searchParams.get("style");
+    if (st) setStyle(st);
   }, [searchParams]);
+
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const [{ data: projects }, { data: acts }, { data: settings }] = await Promise.all([
+        supabase.from("projects").select("id, name, thumbnail_url, updated_at").eq("user_id", user.id).order("updated_at", { ascending: false }).limit(4),
+        supabase.from("activity_log").select("id, action, resource_type, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(5),
+        supabase.from("user_settings").select("default_size, default_style").eq("user_id", user.id).maybeSingle(),
+      ]);
+      setRecentProjects(projects || []);
+      setActivity(acts || []);
+      if (settings) {
+        if (!searchParams.get("size")) setSize(settings.default_size);
+        if (!searchParams.get("style")) setStyle(settings.default_style);
+      }
+    })();
+  }, [user, searchParams]);
 
   const handleGenerate = async () => {
     if (!prompt.trim()) { toast.error("Please enter a prompt"); return; }
