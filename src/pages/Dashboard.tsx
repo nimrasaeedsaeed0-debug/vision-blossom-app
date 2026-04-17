@@ -295,19 +295,57 @@ export default function Dashboard() {
             <h2 className="font-heading text-xl font-semibold">Recent Projects</h2>
             <Link to="/projects" className="text-sm text-primary hover:underline">View All</Link>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {recentProjects.map((project) => (
-              <div key={project.id} className="group cursor-pointer rounded-xl border border-border/50 bg-card overflow-hidden transition-all duration-200 hover:-translate-y-1 hover:border-primary/30 hover:shadow-md">
-                <div className={`aspect-[4/3] bg-gradient-to-br ${project.color} flex items-center justify-center`}>
-                  <span className="text-2xl font-bold text-foreground/20">{project.name.charAt(0)}</span>
-                </div>
-                <div className="p-3">
-                  <p className="text-sm font-medium truncate">{project.name}</p>
-                  <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
-                    <Clock className="h-3 w-3" />
-                    {project.updated}
+          {recentProjects.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center border-2 border-dashed border-border/50 rounded-xl">
+              <FolderOpen className="h-10 w-10 text-muted-foreground/30 mb-3" />
+              <p className="text-sm text-muted-foreground mb-3">No projects yet — create your first one</p>
+              <Button size="sm" onClick={() => navigate("/projects")}>
+                <Plus className="mr-2 h-4 w-4" /> New Project
+              </Button>
+            </div>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {recentProjects.map((project, i) => (
+                <div
+                  key={project.id}
+                  onClick={() => navigate(`/editor?project=${project.id}`)}
+                  className="group cursor-pointer rounded-xl border border-border/50 bg-card overflow-hidden transition-all duration-200 hover:-translate-y-1 hover:border-primary/30 hover:shadow-md"
+                >
+                  <div className={`aspect-[4/3] bg-gradient-to-br ${PROJECT_COLORS[i % PROJECT_COLORS.length]} flex items-center justify-center overflow-hidden`}>
+                    {project.thumbnail_url ? (
+                      <img src={project.thumbnail_url} alt={project.name} className="h-full w-full object-cover" />
+                    ) : (
+                      <span className="text-2xl font-bold text-foreground/20">{project.name.charAt(0).toUpperCase()}</span>
+                    )}
+                  </div>
+                  <div className="p-3">
+                    <p className="text-sm font-medium truncate">{project.name}</p>
+                    <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                      <Clock className="h-3 w-3" />
+                      {timeAgo(project.updated_at)}
+                    </div>
                   </div>
                 </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Recent Activity Feed */}
+      {activity.length > 0 && (
+        <div className="mt-10">
+          <h2 className="font-heading text-xl font-semibold mb-4">Recent Activity</h2>
+          <div className="rounded-xl border border-border/50 bg-card divide-y divide-border/50">
+            {activity.map((a) => (
+              <div key={a.id} className="flex items-center gap-3 p-3 text-sm">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 shrink-0">
+                  <Sparkles className="h-3.5 w-3.5 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="truncate"><span className="font-medium capitalize">{a.action}</span>{a.resource_type && <span className="text-muted-foreground"> · {a.resource_type}</span>}</p>
+                </div>
+                <span className="text-xs text-muted-foreground shrink-0">{timeAgo(a.created_at)}</span>
               </div>
             ))}
           </div>
