@@ -1,6 +1,6 @@
 import {
-  Image, Film, Wand2, Clock, Settings, LayoutDashboard,
-  FolderOpen, Sparkles, Scissors, Palette, Star, Trash2, PresentationIcon, MessageSquare
+  Film, Wand2, Clock, Settings, LayoutDashboard,
+  FolderOpen, Sparkles, Scissors, Palette, PresentationIcon, MessageSquare, Star
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -19,7 +19,6 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 
 const mainNav = [
@@ -30,6 +29,7 @@ const mainNav = [
 
 const workNav = [
   { title: "All Projects", url: "/projects", icon: FolderOpen },
+  { title: "Favorites", url: "/favorites", icon: Star },
   { title: "History", url: "/history", icon: Clock },
 ];
 
@@ -91,20 +91,22 @@ export function AppSidebar() {
         <NavSection label="AI Tools" items={aiNav} collapsed={collapsed} />
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-sidebar-border p-3 space-y-3">
-        {!collapsed && (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span>Storage</span>
-              <span>2.3 / 5 GB</span>
-            </div>
-            <Progress value={46} className="h-1.5" />
-            <Button size="sm" variant="outline" className="w-full text-xs gradient-primary text-primary-foreground border-0">
-              Upgrade to Pro
-            </Button>
-          </div>
-        )}
-        <ThemeToggle />
+      <SidebarFooter className="border-t border-sidebar-border p-3 space-y-2">
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild>
+              <NavLink
+                to="/settings"
+                className="hover:bg-sidebar-accent/50 transition-colors duration-200"
+                activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+              >
+                <Settings className="mr-2 h-4 w-4 shrink-0" />
+                {!collapsed && <span>Settings</span>}
+              </NavLink>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+        {!collapsed && <ThemeToggle />}
       </SidebarFooter>
     </Sidebar>
   );
