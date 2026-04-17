@@ -8,13 +8,13 @@ export async function logActivity(
   metadata: Record<string, unknown> = {}
 ): Promise<void> {
   try {
-    await supabase.from("activity_log").insert({
+    await supabase.from("activity_log").insert([{
       user_id: userId,
       action,
       resource_type: resourceType,
       resource_id: resourceId,
-      metadata,
-    });
+      metadata: metadata as never,
+    }]);
   } catch {
     // non-blocking
   }
