@@ -7,9 +7,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import { Clock, Copy, RefreshCw, Trash2, Download, Eye, Star } from "lucide-react";
+import { Clock, Copy, RefreshCw, Trash2, Download, Eye, Star, Archive } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import JSZip from "jszip";
 
 interface Generation {
   id: string;
@@ -107,6 +108,40 @@ export default function History() {
     }
   };
 
+  const downloadAll = async () => {
+    if (generations.length === 0) return;
+    const urls = generations.flatMap((g) => g.image_urls || []);
+    if (urls.length === 0) {
+      toast.error("No images to download");
+      return;
+    }
+    toast.info(`Bundling ${urls.length} images…`);
+    try {
+      const zip = new JSZip();
+      await Promise.all(
+        urls.map(async (url, i) => {
+          try {
+            const r = await fetch(url);
+            const blob = await r.blob();
+            zip.file(`flashai-${i + 1}.png`, blob);
+          } catch {
+            // skip failures
+          }
+        })
+      );
+      const blob = await zip.generateAsync({ type: "blob" });
+      const dl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = dl;
+      a.download = `flashai-history-${Date.now()}.zip`;
+      a.click();
+      URL.revokeObjectURL(dl);
+      toast.success("Download ready");
+    } catch {
+      toast.error("Bundle failed");
+    }
+  };
+
   return (
     <div className="container mx-auto max-w-4xl px-4 py-8 animate-fade-in">
       <div className="mb-8 text-center">
@@ -115,6 +150,11 @@ export default function History() {
         </div>
         <h1 className="font-heading text-3xl font-bold">Generation History</h1>
         <p className="mt-2 text-muted-foreground">View, re-run, and download your creations</p>
+        {generations.length > 0 && (
+          <Button variant="outline" size="sm" className="mt-4" onClick={downloadAll}>
+            <Archive className="mr-2 h-4 w-4" /> Download All as ZIP
+          </Button>
+        )}
       </div>
 
       {loading ? (

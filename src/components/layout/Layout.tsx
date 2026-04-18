@@ -4,7 +4,7 @@ import { Footer } from "./Footer";
 import { AppSidebar } from "./AppSidebar";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { useAuth } from "@/hooks/useAuth";
-import { FlashLogo } from "@/components/FlashLogo";
+import { QuickCreateFab } from "@/components/QuickCreateFab";
 
 const PUBLIC_ROUTES = ["/", "/login", "/signup", "/pricing"];
 
@@ -26,6 +26,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </header>
             <main className="flex-1">{children}</main>
           </div>
+          <QuickCreateFab />
         </div>
       </SidebarProvider>
     );
@@ -36,6 +37,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <Navbar />
       <main className="flex-1">{children}</main>
       <Footer />
+      <QuickCreateFab />
     </div>
   );
 }
