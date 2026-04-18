@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import {
-  Sparkles, Film, Wand2, Scissors, Expand, Eraser, PresentationIcon,
+  Sparkles, Film, Wand2, Scissors, Expand, Eraser, Presentation,
   MessageSquare, Palette, Loader2, Download, Zap
 } from "lucide-react";
 
