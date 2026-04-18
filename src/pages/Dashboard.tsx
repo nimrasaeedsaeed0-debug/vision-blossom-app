@@ -217,6 +217,12 @@ export default function Dashboard() {
             placeholder="A magical forest at sunset with glowing mushrooms..."
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
+            onKeyDown={(e) => {
+              if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+                e.preventDefault();
+                handleGenerate();
+              }
+            }}
             className="min-h-[100px] resize-none text-base"
           />
           <div className="flex flex-wrap items-center gap-4">
