@@ -21,7 +21,7 @@ const tools = [
   { id: "bg-remover", icon: Scissors, label: "Background Remover", desc: "Remove backgrounds instantly", color: "text-warning" },
   { id: "expander", icon: Expand, label: "Image Expander", desc: "Extend images with AI outpainting", color: "text-primary" },
   { id: "eraser", icon: Eraser, label: "Magic Erase", desc: "Remove objects from images", color: "text-destructive" },
-  { id: "presentations", icon: PresentationIcon, label: "Presentation Builder", desc: "Generate full slide decks", color: "text-cyan" },
+  { id: "presentations", icon: Presentation, label: "Presentation Builder", desc: "Generate full slide decks", color: "text-cyan" },
   { id: "captions", icon: MessageSquare, label: "Caption Generator", desc: "AI-written captions & hashtags", color: "text-warning" },
   { id: "style-transfer", icon: Palette, label: "Style Transfer", desc: "Apply artistic styles to photos", color: "text-primary" },
 ];
