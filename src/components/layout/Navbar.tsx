@@ -1,3 +1,4 @@
+import { forwardRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -11,7 +12,7 @@ interface NavbarProps {
   minimal?: boolean;
 }
 
-export function Navbar({ minimal }: NavbarProps) {
+export const Navbar = forwardRef<HTMLDivElement, NavbarProps>(({ minimal }, ref) => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
 
@@ -23,10 +24,10 @@ export function Navbar({ minimal }: NavbarProps) {
 
   if (minimal) {
     return (
-      <div className="flex items-center gap-3">
+      <div ref={ref} className="flex items-center gap-3">
         <ThemeToggle />
         {!loading && user && (
-          <Button variant="ghost" size="icon" onClick={handleLogout}>
+          <Button variant="ghost" size="icon" onClick={handleLogout} aria-label="Log out">
             <LogOut className="h-4 w-4" />
           </Button>
         )}
@@ -36,7 +37,7 @@ export function Navbar({ minimal }: NavbarProps) {
 
   return (
     <nav className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-lg">
-      <div className="container mx-auto flex h-16 items-center justify-between px-4">
+      <div ref={ref} className="container mx-auto flex h-16 items-center justify-between px-4">
         <Link to="/" className="transition-transform duration-200 hover:scale-[1.02]">
           <FlashLogo />
         </Link>
@@ -49,7 +50,7 @@ export function Navbar({ minimal }: NavbarProps) {
                   <Button variant="ghost" size="sm" asChild>
                     <Link to="/dashboard">Dashboard</Link>
                   </Button>
-                  <Button variant="ghost" size="icon" onClick={handleLogout}>
+                  <Button variant="ghost" size="icon" onClick={handleLogout} aria-label="Log out">
                     <LogOut className="h-4 w-4" />
                   </Button>
                 </>
@@ -69,4 +70,5 @@ export function Navbar({ minimal }: NavbarProps) {
       </div>
     </nav>
   );
-}
+});
+Navbar.displayName = "Navbar";
