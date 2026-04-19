@@ -1,12 +1,12 @@
 # Project Memory
 
 ## Core
-Flash AI — AI-powered creative design platform (Canva competitor). Primary hsl(263 70% 50%) purple, cyan hsl(187 92% 42%). Dark mode default.
-Plus Jakarta Sans headings, Inter body. Lovable Cloud for auth, DB, storage.
-Tables: profiles (user_id, credits), generations (prompt history). Storage: generated-images bucket.
+Flash AI - high-end B&W SaaS. Pure white #FFF / pure black #000. Glassmorphism (.glass, .glass-strong utilities, backdrop-blur 14px, 1px white/10 border). Inter font, tracking-tighter on headings, no serifs.
+Lovable Cloud for auth (Email+Google+Apple), DB, storage. Gemini flash-image for generation.
+Tables: profiles, generations, projects, favorites, brand_kits, user_settings, activity_log.
+Templates page uses CSS-column masonry-grid utility (1→5 cols responsive).
 
 ## Memories
-- [Design tokens](mem://design/tokens) — Purple primary, cyan secondary, dark/light mode, Plus Jakarta Sans + Inter
 - [Auth setup](mem://features/auth) — Email+Google+Apple via Lovable Cloud managed auth
-- [Image generation](mem://features/generation) — Gemini flash-image via edge function + HF Stable Diffusion
-- [Build plan](mem://features/plan) — Flash AI multi-phase: rebrand, landing, dashboard, AI tools, templates, brand kit, pricing, editor
+- [Image generation](mem://features/generation) — Gemini flash-image via edge function, 2 images per prompt
+- [Build plan](mem://features/plan) — 9-phase plan: structure, auth, generation, core, editor, polish, advanced, storage, final
