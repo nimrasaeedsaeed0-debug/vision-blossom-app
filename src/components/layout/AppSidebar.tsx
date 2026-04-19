@@ -120,8 +120,8 @@ function NavSection({
                 to={item.url}
                 end
                 onClick={(e) => handleBetaClick(e, item)}
-                className="hover:bg-sidebar-accent/50 transition-colors duration-200 flex items-center w-full"
-                activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium border-l-2 border-sidebar-primary"
+                className="hover:bg-sidebar-accent/60 transition-colors duration-200 flex items-center w-full rounded-md"
+                activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
               >
                 <item.icon className="mr-2 h-4 w-4 shrink-0" />
                 {!collapsed && <span className="truncate">{item.title}</span>}

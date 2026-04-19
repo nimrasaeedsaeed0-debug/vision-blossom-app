@@ -436,20 +436,22 @@ export default function Templates() {
   }, [aiPrompt]);
 
   const renderGrid = (items: Template[]) => (
-    <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))" }}>
+    <div className="masonry-grid">
       {items.map((t) => (
-        <TemplateCard
-          key={t.id} template={t} query={debouncedQuery}
-          onPreview={handlePreview} onUse={handleUseTemplate}
-        />
+        <div key={t.id} className="masonry-item">
+          <TemplateCard
+            template={t} query={debouncedQuery}
+            onPreview={handlePreview} onUse={handleUseTemplate}
+          />
+        </div>
       ))}
     </div>
   );
 
   return (
-    <div className="container mx-auto max-w-6xl px-4 py-8 animate-fade-in">
-      <h1 className="mb-2 font-heading text-3xl font-bold">Templates</h1>
-      <p className="mb-6 text-muted-foreground">Start with a professionally designed template</p>
+    <div className="container mx-auto max-w-[1600px] px-4 py-10 animate-fade-in">
+      <h1 className="mb-2 text-4xl font-bold tracking-tighter md:text-5xl">Templates</h1>
+      <p className="mb-8 text-muted-foreground">Start with a professionally designed template</p>
 
       {/* Search */}
       <div className="relative mb-4 max-w-md">

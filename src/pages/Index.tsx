@@ -45,9 +45,9 @@ const Index = () => {
             <Zap className="h-4 w-4 fill-current" />
             AI-Powered Creative Platform
           </div>
-          <h1 className="font-heading text-4xl font-extrabold tracking-tight text-primary-foreground md:text-6xl lg:text-7xl">
+          <h1 className="text-5xl font-bold tracking-tighter text-primary-foreground md:text-7xl lg:text-8xl">
             Design Anything.{" "}
-            <span className="bg-gradient-to-r from-primary to-cyan bg-clip-text text-transparent">
+            <span className="block opacity-60">
               Generate Everything.
             </span>
           </h1>
@@ -56,7 +56,7 @@ const Index = () => {
             does the heavy lifting. From idea to stunning design in seconds.
           </p>
           <div className="flex flex-wrap justify-center gap-3 pt-2">
-            <Button size="lg" className="gradient-primary text-primary-foreground gap-2 rounded-full px-8 text-base shadow-lg transition-all duration-200 hover:scale-[1.02] hover:glow-primary" asChild>
+            <Button size="lg" className="rounded-full px-8 text-base shadow-lg transition-all duration-200 hover:scale-[1.02]" asChild>
               <Link to={user ? "/dashboard" : "/signup"}>
                 <Zap className="h-5 w-5 fill-current" />
                 Start Creating Free
