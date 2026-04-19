@@ -36,7 +36,7 @@ export const Navbar = forwardRef<HTMLDivElement, NavbarProps>(({ minimal }, ref)
   }
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-lg">
+    <nav className="sticky top-0 z-50 glass-strong">
       <div ref={ref} className="container mx-auto flex h-16 items-center justify-between px-4">
         <Link to="/" className="transition-transform duration-200 hover:scale-[1.02]">
           <FlashLogo />
@@ -59,7 +59,7 @@ export const Navbar = forwardRef<HTMLDivElement, NavbarProps>(({ minimal }, ref)
                   <Button variant="ghost" size="sm" asChild>
                     <Link to="/login">Log in</Link>
                   </Button>
-                  <Button size="sm" className="gradient-primary rounded-full" asChild>
+                  <Button size="sm" className="rounded-full" asChild>
                     <Link to="/signup">Sign up</Link>
                   </Button>
                 </>

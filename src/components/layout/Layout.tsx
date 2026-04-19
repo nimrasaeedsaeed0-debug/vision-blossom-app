@@ -20,7 +20,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <div className="min-h-screen flex w-full">
           <AppSidebar />
           <div className="flex-1 flex flex-col">
-            <header className="sticky top-0 z-50 h-14 flex items-center justify-between border-b border-border/50 bg-background/80 backdrop-blur-lg px-4">
+            <header className="sticky top-0 z-50 h-14 flex items-center justify-between glass-strong px-4">
               <SidebarTrigger className="ml-0" />
               <Navbar minimal />
             </header>
