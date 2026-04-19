@@ -184,13 +184,15 @@ export default function Dashboard() {
           <button
             key={label}
             onClick={onClick}
-            className="group flex flex-col items-center gap-2 rounded-xl border border-border/50 bg-card p-4 text-center transition-all duration-200 hover:-translate-y-1 hover:border-primary/30 hover:shadow-md"
+            className="group flex flex-col items-start gap-3 rounded-2xl glass p-5 text-left transition-all duration-300 hover:-translate-y-0.5 hover:shadow-2xl hover:shadow-foreground/5"
           >
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 transition-colors duration-200 group-hover:bg-primary/20">
-              <Icon className="h-5 w-5 text-primary" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-foreground text-background transition-transform duration-300 group-hover:scale-110">
+              <Icon className="h-5 w-5" />
             </div>
-            <span className="text-sm font-medium">{label}</span>
-            <span className="text-xs text-muted-foreground">{desc}</span>
+            <div>
+              <span className="block text-sm font-semibold tracking-tight">{label}</span>
+              <span className="mt-0.5 block text-xs text-muted-foreground">{desc}</span>
+            </div>
           </button>
         ))}
       </div>
