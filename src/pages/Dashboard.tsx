@@ -11,10 +11,11 @@ import { SplitButton } from "@/components/SplitButton";
 import { toast } from "sonner";
 import {
   Loader2, Sparkles, Download, RefreshCw, Wand2, RotateCcw, Pencil,
-  Plus, Zap, Upload, LayoutGrid, FolderOpen, MoreHorizontal, Clock
+  Plus, Zap, Upload, LayoutGrid, FolderOpen, Clock, Copy, Share2, Camera
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/lib/activity";
+import { useWorkspace } from "@/hooks/useWorkspace";
 
 const SIZES = [
   { label: "1:1", value: "1:1", w: 1024, h: 1024 },
@@ -25,7 +26,7 @@ const SIZES = [
 
 const STYLES = ["Realistic", "Anime", "Cinematic", "Digital Art", "Watercolor", "3D Render"] as const;
 
-type Provider = "lovable" | "huggingface";
+type Provider = "lovable" | "realistic" | "huggingface";
 
 interface RecentProject {
   id: string;
@@ -61,6 +62,7 @@ function timeAgo(iso: string): string {
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const { activeWorkspace } = useWorkspace();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -119,8 +121,9 @@ export default function Dashboard() {
         if (data?.images) { resultImages = data.images; setImages(data.images); }
         else toast.error("No images returned");
       } else {
+        const isRealistic = provider === "realistic";
         const { data, error } = await supabase.functions.invoke("generate-image", {
-          body: { prompt: `${style} style: ${prompt}`, size, count: 2 },
+          body: { prompt: `${style} style: ${prompt}`, size, count: 2, realistic: isRealistic },
         });
         if (error) throw error;
         if (data?.images) { resultImages = data.images; setImages(data.images); }
@@ -171,8 +174,40 @@ export default function Dashboard() {
     a.click();
   };
 
+  const handleCopyPrompt = () => {
+    if (!prompt.trim()) { toast.error("Nothing to copy"); return; }
+    navigator.clipboard.writeText(prompt);
+    toast.success("Prompt copied");
+  };
+
+  const handleShare = async (dataUrl: string) => {
+    try {
+      const blob = await (await fetch(dataUrl)).blob();
+      const file = new File([blob], "flashai.png", { type: blob.type });
+      if (navigator.share && navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], title: "Made with Flash AI" });
+      } else {
+        await navigator.clipboard.writeText(dataUrl);
+        toast.success("Image URL copied to clipboard");
+      }
+    } catch {
+      toast.error("Could not share");
+    }
+  };
+
   return (
     <div className="container mx-auto max-w-6xl px-4 py-8 animate-fade-in">
+      {activeWorkspace && (
+        <div className="mb-6 flex items-center justify-between rounded-xl border border-primary/20 bg-primary/5 px-4 py-3">
+          <div>
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Workspace</div>
+            <div className="text-sm font-semibold">{activeWorkspace.name}</div>
+          </div>
+          <Button variant="ghost" size="sm" onClick={() => navigate("/workspace/create")}>
+            <Plus className="mr-1 h-3.5 w-3.5" /> New
+          </Button>
+        </div>
+      )}
       {/* Quick Actions */}
       <div className="mb-8 grid grid-cols-2 gap-3 md:grid-cols-4">
         {[
@@ -245,9 +280,14 @@ export default function Dashboard() {
               </div>
             </div>
             <div className="space-y-1">
-              <span className="text-xs font-medium text-muted-foreground">Provider</span>
-              <div className="flex gap-1">
-                <Button variant={provider === "lovable" ? "default" : "outline"} size="sm" onClick={() => setProvider("lovable")} className="transition-all duration-200">Flash AI</Button>
+              <span className="text-xs font-medium text-muted-foreground">Model</span>
+              <div className="flex flex-wrap gap-1">
+                <Button variant={provider === "lovable" ? "default" : "outline"} size="sm" onClick={() => setProvider("lovable")} className="transition-all duration-200">
+                  <Zap className="mr-1 h-3.5 w-3.5" /> Flash
+                </Button>
+                <Button variant={provider === "realistic" ? "default" : "outline"} size="sm" onClick={() => setProvider("realistic")} className="transition-all duration-200">
+                  <Camera className="mr-1 h-3.5 w-3.5" /> Photorealistic
+                </Button>
                 <Button variant={provider === "huggingface" ? "default" : "outline"} size="sm" onClick={() => setProvider("huggingface")} className="transition-all duration-200">Stable Diffusion</Button>
               </div>
             </div>
@@ -283,6 +323,7 @@ export default function Dashboard() {
             disabled={generating || enhancing}
             dropdownItems={[
               { label: enhancing ? "Enhancing..." : "Enhance Prompt", icon: <Wand2 className="h-4 w-4" />, onClick: handleEnhancePrompt },
+              { label: "Copy Prompt", icon: <Copy className="h-4 w-4" />, onClick: handleCopyPrompt },
               { label: "Reset", icon: <RotateCcw className="h-4 w-4" />, onClick: handleReset },
             ]}
           />
@@ -296,9 +337,10 @@ export default function Dashboard() {
                 <CardContent className="p-0">
                   <img src={img} alt={`Generated ${i + 1}`} className="aspect-square w-full object-cover" />
                   <div className="absolute inset-0 flex items-end justify-end gap-2 bg-gradient-to-t from-black/60 to-transparent p-3 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-                    <Button size="icon" variant="secondary" onClick={() => handleDownload(img, i)}><Download className="h-4 w-4" /></Button>
-                    <Button size="icon" variant="secondary" onClick={() => navigate(`/editor?image=${encodeURIComponent(img)}`)}><Pencil className="h-4 w-4" /></Button>
-                    <Button size="icon" variant="secondary" onClick={handleGenerate}><RefreshCw className="h-4 w-4" /></Button>
+                    <Button size="icon" variant="secondary" onClick={() => handleDownload(img, i)} title="Download"><Download className="h-4 w-4" /></Button>
+                    <Button size="icon" variant="secondary" onClick={() => handleShare(img)} title="Share"><Share2 className="h-4 w-4" /></Button>
+                    <Button size="icon" variant="secondary" onClick={() => navigate(`/editor?image=${encodeURIComponent(img)}`)} title="Edit"><Pencil className="h-4 w-4" /></Button>
+                    <Button size="icon" variant="secondary" onClick={handleGenerate} title="Regenerate"><RefreshCw className="h-4 w-4" /></Button>
                   </div>
                 </CardContent>
               </Card>

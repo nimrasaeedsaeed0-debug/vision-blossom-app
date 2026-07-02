@@ -1,8 +1,9 @@
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { WorkspaceGate } from "@/components/WorkspaceGate";
 import { Loader2 } from "lucide-react";
 
-export function ProtectedRoute({ children }: { children: React.ReactNode }) {
+export function ProtectedRoute({ children, requireWorkspace = true }: { children: React.ReactNode; requireWorkspace?: boolean }) {
   const { user, loading } = useAuth();
 
   if (loading) {
@@ -15,6 +16,10 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
   if (!user) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (requireWorkspace) {
+    return <WorkspaceGate>{children}</WorkspaceGate>;
   }
 
   return <>{children}</>;

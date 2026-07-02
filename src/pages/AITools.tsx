@@ -16,7 +16,7 @@ import {
 
 const tools = [
   { id: "text-to-image", icon: Sparkles, label: "Text to Image", desc: "Generate images from text prompts", color: "text-primary" },
-  { id: "image-to-video", icon: Film, label: "Image to Video", desc: "Animate static images", color: "text-cyan" },
+  
   { id: "enhancer", icon: Wand2, label: "Image Enhancer", desc: "Upscale & improve images", color: "text-success" },
   { id: "bg-remover", icon: Scissors, label: "Background Remover", desc: "Remove backgrounds instantly", color: "text-warning" },
   { id: "expander", icon: Expand, label: "Image Expander", desc: "Extend images with AI outpainting", color: "text-primary" },

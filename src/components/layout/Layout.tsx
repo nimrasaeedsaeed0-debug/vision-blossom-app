@@ -7,12 +7,14 @@ import { useAuth } from "@/hooks/useAuth";
 import { QuickCreateFab } from "@/components/QuickCreateFab";
 
 const PUBLIC_ROUTES = ["/", "/login", "/signup", "/pricing"];
+const NO_SIDEBAR_ROUTES = ["/workspace/create"];
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const { user } = useAuth();
   const isPublicRoute = PUBLIC_ROUTES.includes(location.pathname);
-  const showSidebar = user && !isPublicRoute;
+  const hideSidebar = NO_SIDEBAR_ROUTES.includes(location.pathname);
+  const showSidebar = user && !isPublicRoute && !hideSidebar;
 
   if (showSidebar) {
     return (
@@ -30,6 +32,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
         </div>
       </SidebarProvider>
     );
+  }
+
+  if (hideSidebar) {
+    return <main>{children}</main>;
   }
 
   return (
