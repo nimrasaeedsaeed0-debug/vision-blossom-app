@@ -11,10 +11,11 @@ import { SplitButton } from "@/components/SplitButton";
 import { toast } from "sonner";
 import {
   Loader2, Sparkles, Download, RefreshCw, Wand2, RotateCcw, Pencil,
-  Plus, Zap, Upload, LayoutGrid, FolderOpen, MoreHorizontal, Clock
+  Plus, Zap, Upload, LayoutGrid, FolderOpen, Clock, Copy, Share2, Camera
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/lib/activity";
+import { useWorkspace } from "@/hooks/useWorkspace";
 
 const SIZES = [
   { label: "1:1", value: "1:1", w: 1024, h: 1024 },
@@ -25,7 +26,7 @@ const SIZES = [
 
 const STYLES = ["Realistic", "Anime", "Cinematic", "Digital Art", "Watercolor", "3D Render"] as const;
 
-type Provider = "lovable" | "huggingface";
+type Provider = "lovable" | "realistic" | "huggingface";
 
 interface RecentProject {
   id: string;
@@ -61,6 +62,7 @@ function timeAgo(iso: string): string {
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const { activeWorkspace } = useWorkspace();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
