@@ -269,9 +269,14 @@ export default function Dashboard() {
               </div>
             </div>
             <div className="space-y-1">
-              <span className="text-xs font-medium text-muted-foreground">Provider</span>
-              <div className="flex gap-1">
-                <Button variant={provider === "lovable" ? "default" : "outline"} size="sm" onClick={() => setProvider("lovable")} className="transition-all duration-200">Flash AI</Button>
+              <span className="text-xs font-medium text-muted-foreground">Model</span>
+              <div className="flex flex-wrap gap-1">
+                <Button variant={provider === "lovable" ? "default" : "outline"} size="sm" onClick={() => setProvider("lovable")} className="transition-all duration-200">
+                  <Zap className="mr-1 h-3.5 w-3.5" /> Flash
+                </Button>
+                <Button variant={provider === "realistic" ? "default" : "outline"} size="sm" onClick={() => setProvider("realistic")} className="transition-all duration-200">
+                  <Camera className="mr-1 h-3.5 w-3.5" /> Photorealistic
+                </Button>
                 <Button variant={provider === "huggingface" ? "default" : "outline"} size="sm" onClick={() => setProvider("huggingface")} className="transition-all duration-200">Stable Diffusion</Button>
               </div>
             </div>
@@ -307,6 +312,7 @@ export default function Dashboard() {
             disabled={generating || enhancing}
             dropdownItems={[
               { label: enhancing ? "Enhancing..." : "Enhance Prompt", icon: <Wand2 className="h-4 w-4" />, onClick: handleEnhancePrompt },
+              { label: "Copy Prompt", icon: <Copy className="h-4 w-4" />, onClick: handleCopyPrompt },
               { label: "Reset", icon: <RotateCcw className="h-4 w-4" />, onClick: handleReset },
             ]}
           />
@@ -320,9 +326,10 @@ export default function Dashboard() {
                 <CardContent className="p-0">
                   <img src={img} alt={`Generated ${i + 1}`} className="aspect-square w-full object-cover" />
                   <div className="absolute inset-0 flex items-end justify-end gap-2 bg-gradient-to-t from-black/60 to-transparent p-3 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-                    <Button size="icon" variant="secondary" onClick={() => handleDownload(img, i)}><Download className="h-4 w-4" /></Button>
-                    <Button size="icon" variant="secondary" onClick={() => navigate(`/editor?image=${encodeURIComponent(img)}`)}><Pencil className="h-4 w-4" /></Button>
-                    <Button size="icon" variant="secondary" onClick={handleGenerate}><RefreshCw className="h-4 w-4" /></Button>
+                    <Button size="icon" variant="secondary" onClick={() => handleDownload(img, i)} title="Download"><Download className="h-4 w-4" /></Button>
+                    <Button size="icon" variant="secondary" onClick={() => handleShare(img)} title="Share"><Share2 className="h-4 w-4" /></Button>
+                    <Button size="icon" variant="secondary" onClick={() => navigate(`/editor?image=${encodeURIComponent(img)}`)} title="Edit"><Pencil className="h-4 w-4" /></Button>
+                    <Button size="icon" variant="secondary" onClick={handleGenerate} title="Regenerate"><RefreshCw className="h-4 w-4" /></Button>
                   </div>
                 </CardContent>
               </Card>
