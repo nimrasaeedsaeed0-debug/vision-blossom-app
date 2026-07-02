@@ -197,6 +197,17 @@ export default function Dashboard() {
 
   return (
     <div className="container mx-auto max-w-6xl px-4 py-8 animate-fade-in">
+      {activeWorkspace && (
+        <div className="mb-6 flex items-center justify-between rounded-xl border border-primary/20 bg-primary/5 px-4 py-3">
+          <div>
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Workspace</div>
+            <div className="text-sm font-semibold">{activeWorkspace.name}</div>
+          </div>
+          <Button variant="ghost" size="sm" onClick={() => navigate("/workspace/create")}>
+            <Plus className="mr-1 h-3.5 w-3.5" /> New
+          </Button>
+        </div>
+      )}
       {/* Quick Actions */}
       <div className="mb-8 grid grid-cols-2 gap-3 md:grid-cols-4">
         {[
