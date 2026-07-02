@@ -194,10 +194,6 @@ export default function Dashboard() {
       toast.error("Could not share");
     }
   };
-    a.href = dataUrl;
-    a.download = `flashai-${Date.now()}-${index}.png`;
-    a.click();
-  };
 
   return (
     <div className="container mx-auto max-w-6xl px-4 py-8 animate-fade-in">
