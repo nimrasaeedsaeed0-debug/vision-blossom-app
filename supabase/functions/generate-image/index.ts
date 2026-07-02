@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { prompt, size, count } = await req.json();
+    const { prompt, size, count, model: reqModel, realistic } = await req.json();
 
     if (!prompt || typeof prompt !== "string") {
       return new Response(JSON.stringify({ error: "Prompt is required" }), {
@@ -45,11 +45,13 @@ serve(async (req) => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "google/gemini-2.5-flash-image",
+            model: reqModel || (realistic ? "google/gemini-3-pro-image" : "google/gemini-2.5-flash-image"),
             messages: [
               {
                 role: "user",
-                content: `Generate a high quality image: ${prompt}. Use ${sizeInstruction}. Make it visually stunning and detailed.`,
+                content: realistic
+                  ? `Generate an ultra-photorealistic image: ${prompt}. Use ${sizeInstruction}. Shot on a full-frame DSLR, sharp focus, natural lighting, lifelike skin/textures, cinematic depth of field, 8k detail. Avoid illustration, avoid CGI look.`
+                  : `Generate a high quality image: ${prompt}. Use ${sizeInstruction}. Make it visually stunning and detailed.`,
               },
             ],
             modalities: ["image", "text"],
