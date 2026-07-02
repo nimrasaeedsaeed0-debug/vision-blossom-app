@@ -49,13 +49,13 @@
   }
 
   .dark {
-    /* Dark mode = pure black background, white ink */
-    --background: 0 0% 0%;
-    --foreground: 0 0% 100%;
-    --card: 0 0% 4%;
-    --card-foreground: 0 0% 100%;
-    --popover: 0 0% 4%;
-    --popover-foreground: 0 0% 100%;
+    /* Dark mode = deep blue-tinted dark, light blue accents */
+    --background: 215 40% 6%;
+    --foreground: 200 20% 98%;
+    --card: 215 35% 9%;
+    --card-foreground: 200 20% 98%;
+    --popover: 215 35% 9%;
+    --popover-foreground: 200 20% 98%;
     --primary: 200 95% 65%;
     --primary-foreground: 200 100% 8%;
     --secondary: 210 30% 12%;
