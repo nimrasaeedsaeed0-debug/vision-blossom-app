@@ -38,40 +38,42 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
       <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Layout>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/signup" element={<Signup />} />
-                <Route path="/pricing" element={<Pricing />} />
-                <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-                <Route path="/editor" element={<ProtectedRoute><Editor /></ProtectedRoute>} />
-                <Route path="/image-to-video" element={<ProtectedRoute><ImageToVideo /></ProtectedRoute>} />
-                <Route path="/enhancer" element={<ProtectedRoute><Enhancer /></ProtectedRoute>} />
-                <Route path="/bg-remover" element={<ProtectedRoute><BgRemover /></ProtectedRoute>} />
-                <Route path="/expander" element={<ProtectedRoute><ImageExpander /></ProtectedRoute>} />
-                <Route path="/magic-erase" element={<ProtectedRoute><MagicErase /></ProtectedRoute>} />
-                <Route path="/style-transfer" element={<ProtectedRoute><StyleTransfer /></ProtectedRoute>} />
-                <Route path="/presentations" element={<ProtectedRoute><PresentationBuilder /></ProtectedRoute>} />
-                <Route path="/captions" element={<ProtectedRoute><CaptionGenerator /></ProtectedRoute>} />
-                <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
-                <Route path="/templates" element={<ProtectedRoute><Templates /></ProtectedRoute>} />
-                <Route path="/ai-tools" element={<ProtectedRoute><AITools /></ProtectedRoute>} />
-                <Route path="/ai-tools/:toolId" element={<ProtectedRoute><AITools /></ProtectedRoute>} />
-                <Route path="/brand-kit" element={<ProtectedRoute><BrandKit /></ProtectedRoute>} />
-                <Route path="/projects" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
-                <Route path="/favorites" element={<ProtectedRoute><Favorites /></ProtectedRoute>} />
-                <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-                <Route path="/coming-soon/:feature" element={<ProtectedRoute><ComingSoon /></ProtectedRoute>} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </Layout>
-          </BrowserRouter>
-        </TooltipProvider>
+        <WorkspaceProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Layout>
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/signup" element={<Signup />} />
+                  <Route path="/pricing" element={<Pricing />} />
+                  <Route path="/workspace/create" element={<ProtectedRoute requireWorkspace={false}><CreateWorkspace /></ProtectedRoute>} />
+                  <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                  <Route path="/editor" element={<ProtectedRoute><Editor /></ProtectedRoute>} />
+                  <Route path="/enhancer" element={<ProtectedRoute><Enhancer /></ProtectedRoute>} />
+                  <Route path="/bg-remover" element={<ProtectedRoute><BgRemover /></ProtectedRoute>} />
+                  <Route path="/expander" element={<ProtectedRoute><ImageExpander /></ProtectedRoute>} />
+                  <Route path="/magic-erase" element={<ProtectedRoute><MagicErase /></ProtectedRoute>} />
+                  <Route path="/style-transfer" element={<ProtectedRoute><StyleTransfer /></ProtectedRoute>} />
+                  <Route path="/presentations" element={<ProtectedRoute><PresentationBuilder /></ProtectedRoute>} />
+                  <Route path="/captions" element={<ProtectedRoute><CaptionGenerator /></ProtectedRoute>} />
+                  <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
+                  <Route path="/templates" element={<ProtectedRoute><Templates /></ProtectedRoute>} />
+                  <Route path="/ai-tools" element={<ProtectedRoute><AITools /></ProtectedRoute>} />
+                  <Route path="/ai-tools/:toolId" element={<ProtectedRoute><AITools /></ProtectedRoute>} />
+                  <Route path="/brand-kit" element={<ProtectedRoute><BrandKit /></ProtectedRoute>} />
+                  <Route path="/projects" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
+                  <Route path="/favorites" element={<ProtectedRoute><Favorites /></ProtectedRoute>} />
+                  <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+                  <Route path="/coming-soon/:feature" element={<ProtectedRoute requireWorkspace={false}><ComingSoon /></ProtectedRoute>} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Layout>
+            </BrowserRouter>
+          </TooltipProvider>
+        </WorkspaceProvider>
       </AuthProvider>
     </ThemeProvider>
   </QueryClientProvider>
