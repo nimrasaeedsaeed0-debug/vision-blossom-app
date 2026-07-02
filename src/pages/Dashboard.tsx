@@ -121,8 +121,9 @@ export default function Dashboard() {
         if (data?.images) { resultImages = data.images; setImages(data.images); }
         else toast.error("No images returned");
       } else {
+        const isRealistic = provider === "realistic";
         const { data, error } = await supabase.functions.invoke("generate-image", {
-          body: { prompt: `${style} style: ${prompt}`, size, count: 2 },
+          body: { prompt: `${style} style: ${prompt}`, size, count: 2, realistic: isRealistic },
         });
         if (error) throw error;
         if (data?.images) { resultImages = data.images; setImages(data.images); }
@@ -168,6 +169,31 @@ export default function Dashboard() {
 
   const handleDownload = (dataUrl: string, index: number) => {
     const a = document.createElement("a");
+    a.href = dataUrl;
+    a.download = `flashai-${Date.now()}-${index}.png`;
+    a.click();
+  };
+
+  const handleCopyPrompt = () => {
+    if (!prompt.trim()) { toast.error("Nothing to copy"); return; }
+    navigator.clipboard.writeText(prompt);
+    toast.success("Prompt copied");
+  };
+
+  const handleShare = async (dataUrl: string) => {
+    try {
+      const blob = await (await fetch(dataUrl)).blob();
+      const file = new File([blob], "flashai.png", { type: blob.type });
+      if (navigator.share && navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], title: "Made with Flash AI" });
+      } else {
+        await navigator.clipboard.writeText(dataUrl);
+        toast.success("Image URL copied to clipboard");
+      }
+    } catch {
+      toast.error("Could not share");
+    }
+  };
     a.href = dataUrl;
     a.download = `flashai-${Date.now()}-${index}.png`;
     a.click();
