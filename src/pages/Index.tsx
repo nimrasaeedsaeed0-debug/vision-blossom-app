@@ -3,15 +3,15 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { FlashLogo } from "@/components/FlashLogo";
 import {
-  Zap, Wand2, Image, Palette, Layout, Users, Scissors,
+  Zap, Wand2, Image, Layout, Users, Scissors,
   ArrowRight, Star, Play, MessageSquare, Sparkles
 } from "lucide-react";
 
 const features = [
   { icon: Sparkles, title: "AI Image Generation", desc: "Describe anything and watch AI create stunning visuals in seconds." },
   { icon: Layout, title: "Drag & Drop Editor", desc: "Intuitive canvas editor with layers, shapes, text, and smart guides." },
-  { icon: Image, title: "1,000+ Templates", desc: "Professional templates for social media, presentations, and more." },
-  { icon: Palette, title: "Brand Kit", desc: "Save your colors, fonts, and logos. Apply them with one click." },
+  { icon: Image, title: "1,000+ Templates", desc: "Professional templates for social media, marketing, and more." },
+  { icon: Wand2, title: "AI Photo Enhancer", desc: "Upscale, sharpen, and enhance any image with one click." },
   { icon: Users, title: "Team Collaboration", desc: "Invite your team. Design together in real-time with shared projects." },
   { icon: Scissors, title: "Background Removal", desc: "Remove backgrounds instantly with AI. No manual editing needed." },
 ];
@@ -27,8 +27,8 @@ const testimonials = [
   { name: "Alex Rivera", role: "Freelance Designer", company: "Self-employed", quote: "I create social media content 10x faster. The templates and AI tools are a game-changer." },
   { name: "Jordan Kim", role: "Startup Founder", company: "LaunchPad", quote: "We built our entire brand identity using Flash AI. No designer needed." },
   { name: "Maya Patel", role: "Content Creator", company: "YouTube", quote: "Thumbnails, banners, posts — I make everything here. The quality is insane." },
-  { name: "David Okafor", role: "Product Manager", company: "FinoTech", quote: "Our presentation workflow went from days to minutes. The AI presentation builder is magic." },
-  { name: "Lisa Wang", role: "Social Media Manager", company: "BrandHive", quote: "The caption generator alone saves me hours every week. Love the brand kit feature." },
+  { name: "David Okafor", role: "Product Manager", company: "FinoTech", quote: "Our design workflow went from days to minutes. The AI tools are pure magic." },
+  { name: "Lisa Wang", role: "Social Media Manager", company: "BrandHive", quote: "The image enhancer alone saves me hours every week. My whole team runs on Flash AI." },
 ];
 
 const Index = () => {
