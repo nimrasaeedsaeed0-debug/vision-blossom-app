@@ -111,10 +111,10 @@ Deno.serve(async (req) => {
         });
 
       if (!uploadError) {
-        const { data: urlData } = adminClient.storage
+        const { data: urlData } = await adminClient.storage
           .from("generated-images")
-          .getPublicUrl(fileName);
-        publicUrl = urlData.publicUrl;
+          .createSignedUrl(fileName, 60 * 60 * 24 * 365);
+        publicUrl = urlData?.signedUrl ?? null;
       }
     }
 

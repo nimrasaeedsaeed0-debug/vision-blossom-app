@@ -102,8 +102,15 @@ export default function BrandKit() {
       return;
     }
 
-    const { data: pub } = supabase.storage.from("brand-assets").getPublicUrl(path);
-    const url = pub.publicUrl;
+    const { data: signed, error: signErr } = await supabase.storage
+      .from("brand-assets")
+      .createSignedUrl(path, 60 * 60 * 24 * 365);
+    if (signErr || !signed?.signedUrl) {
+      toast.error("Upload failed");
+      setUploading(false);
+      return;
+    }
+    const url = signed.signedUrl;
     setLogoUrl(url);
     await persist({ logo_url: url });
     setUploading(false);

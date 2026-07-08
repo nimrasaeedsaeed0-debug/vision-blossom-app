@@ -365,8 +365,11 @@ export default function Templates() {
         .from("generated-images")
         .upload(path, file, { upsert: false, contentType: file.type });
       if (upErr) throw upErr;
-      const { data: pub } = supabase.storage.from("generated-images").getPublicUrl(path);
-      const projectId = await createProjectFromTemplate(useTemplateOpen, { thumbnail: pub.publicUrl });
+      const { data: signed, error: signErr } = await supabase.storage
+        .from("generated-images")
+        .createSignedUrl(path, 60 * 60 * 24 * 365);
+      if (signErr || !signed?.signedUrl) throw signErr ?? new Error("Failed to sign URL");
+      const projectId = await createProjectFromTemplate(useTemplateOpen, { thumbnail: signed.signedUrl });
       if (projectId) {
         toast.success("Project created from upload");
         setUseTemplateOpen(null);
