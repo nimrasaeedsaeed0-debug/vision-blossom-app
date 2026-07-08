@@ -48,7 +48,7 @@ export const Navbar = forwardRef<HTMLDivElement, NavbarProps>(({ minimal }, ref)
               {user ? (
                 <>
                   <Button variant="ghost" size="sm" asChild>
-                    <Link to="/dashboard">Dashboard</Link>
+                    <Link to="/dashboard">My Projects</Link>
                   </Button>
                   <Button variant="ghost" size="icon" onClick={handleLogout} aria-label="Log out">
                     <LogOut className="h-4 w-4" />

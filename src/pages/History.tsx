@@ -65,7 +65,7 @@ export default function History() {
     const params = new URLSearchParams({ prompt: g.prompt });
     if (g.style) params.set("style", g.style);
     if (g.size) params.set("size", g.size);
-    navigate(`/dashboard?${params.toString()}`);
+    navigate(`/ai-tools?${params.toString()}`);
   };
 
   const remove = async (id: string) => {
@@ -166,7 +166,7 @@ export default function History() {
           <Clock className="mx-auto mb-4 h-12 w-12 opacity-50" />
           <p className="text-lg">No generations yet</p>
           <p className="text-sm">Your generated images will appear here</p>
-          <Button className="mt-4" onClick={() => navigate("/dashboard")}>Start Creating</Button>
+          <Button className="mt-4" onClick={() => navigate("/ai-tools")}>Start Creating</Button>
         </div>
       ) : (
         <div className="space-y-4">

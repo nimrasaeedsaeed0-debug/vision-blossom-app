@@ -6,50 +6,50 @@
 
 @layer base {
   :root {
-    /* Light mode — icy whites with deep ocean blue ink */
+    /* Light mode — icy whites with near-black ink */
     --background: 210 40% 99%;
-    --foreground: 210 45% 12%;
+    --foreground: 220 30% 8%;
     --card: 0 0% 100%;
-    --card-foreground: 210 45% 12%;
+    --card-foreground: 220 30% 8%;
     --popover: 0 0% 100%;
-    --popover-foreground: 210 45% 12%;
+    --popover-foreground: 220 30% 8%;
 
-    /* Primary = deep arctic blue (#2e6b8a) */
-    --primary: 202 50% 36%;
+    /* Primary = deep arctic blue */
+    --primary: 202 55% 32%;
     --primary-foreground: 210 40% 99%;
 
-    /* Secondary = soft icy blue (#e8f0f8) */
+    /* Secondary = soft icy blue */
     --secondary: 210 47% 94%;
-    --secondary-foreground: 202 55% 22%;
+    --secondary-foreground: 220 30% 8%;
 
     --muted: 210 40% 96%;
-    --muted-foreground: 210 20% 45%;
+    --muted-foreground: 215 20% 30%;
 
-    /* Accent = mid frost (#b8d4e8) */
+    /* Accent = mid frost */
     --accent: 205 52% 88%;
-    --accent-foreground: 202 55% 22%;
+    --accent-foreground: 220 30% 8%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 210 30% 90%;
-    --input: 210 30% 92%;
-    --ring: 202 50% 36%;
+    --border: 210 25% 85%;
+    --input: 210 25% 88%;
+    --ring: 202 55% 32%;
     --radius: 0.875rem;
 
     --sidebar-background: 210 45% 98%;
-    --sidebar-foreground: 210 30% 25%;
-    --sidebar-primary: 202 50% 36%;
+    --sidebar-foreground: 220 30% 8%;
+    --sidebar-primary: 202 55% 32%;
     --sidebar-primary-foreground: 210 40% 99%;
-    --sidebar-accent: 210 47% 94%;
-    --sidebar-accent-foreground: 202 55% 22%;
-    --sidebar-border: 210 30% 90%;
-    --sidebar-ring: 202 50% 36%;
+    --sidebar-accent: 210 47% 92%;
+    --sidebar-accent-foreground: 220 30% 8%;
+    --sidebar-border: 210 25% 85%;
+    --sidebar-ring: 202 55% 32%;
 
-    --cyan: 203 47% 60%;
-    --cyan-foreground: 210 45% 12%;
-    --success: 160 55% 40%;
-    --warning: 35 90% 52%;
+    --cyan: 203 55% 50%;
+    --cyan-foreground: 220 30% 8%;
+    --success: 160 55% 36%;
+    --warning: 35 90% 48%;
 
     /* Glass tokens */
     --glass-bg: 210 47% 99% / 0.7;
@@ -117,12 +117,19 @@
     @apply bg-background text-foreground antialiased;
     font-family: 'Figtree', system-ui, -apple-system, sans-serif;
     font-feature-settings: 'ss01', 'cv11';
+    font-weight: 500;
+    letter-spacing: -0.005em;
   }
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Outfit', system-ui, -apple-system, sans-serif;
     @apply tracking-tight;
-    font-weight: 600;
+    font-weight: 700;
+    color: hsl(var(--foreground));
   }
+  p, span, label, li, a, button, input, textarea, select {
+    font-weight: 500;
+  }
+  strong, b { font-weight: 700; }
   ::selection {
     background: hsl(var(--primary) / 0.25);
     color: hsl(var(--foreground));

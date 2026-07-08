@@ -26,7 +26,7 @@ export function QuickCreateFab() {
 
   const submit = () => {
     if (!prompt.trim()) return;
-    navigate(`/dashboard?prompt=${encodeURIComponent(prompt.trim())}`);
+    navigate(`/ai-tools?prompt=${encodeURIComponent(prompt.trim())}`);
     setPrompt("");
     setOpen(false);
   };

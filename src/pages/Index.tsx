@@ -10,8 +10,8 @@ import {
 const features = [
   { icon: Sparkles, title: "AI Image Generation", desc: "Describe anything and watch AI create stunning visuals in seconds." },
   { icon: Layout, title: "Drag & Drop Editor", desc: "Intuitive canvas editor with layers, shapes, text, and smart guides." },
-  { icon: Image, title: "1,000+ Templates", desc: "Professional templates for social media, presentations, and more." },
-  { icon: Palette, title: "Brand Kit", desc: "Save your colors, fonts, and logos. Apply them with one click." },
+  { icon: Image, title: "1,000+ Templates", desc: "Professional templates for social media, marketing, and more." },
+  { icon: Wand2, title: "AI Photo Enhancer", desc: "Upscale, sharpen, and enhance any image with one click." },
   { icon: Users, title: "Team Collaboration", desc: "Invite your team. Design together in real-time with shared projects." },
   { icon: Scissors, title: "Background Removal", desc: "Remove backgrounds instantly with AI. No manual editing needed." },
 ];
