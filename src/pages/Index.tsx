@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { FlashLogo } from "@/components/FlashLogo";
 import {
-  Zap, Wand2, Image, Palette, Layout, Users, Scissors,
+  Zap, Wand2, Image, Layout, Users, Scissors,
   ArrowRight, Star, Play, MessageSquare, Sparkles
 } from "lucide-react";
 
@@ -27,8 +27,8 @@ const testimonials = [
   { name: "Alex Rivera", role: "Freelance Designer", company: "Self-employed", quote: "I create social media content 10x faster. The templates and AI tools are a game-changer." },
   { name: "Jordan Kim", role: "Startup Founder", company: "LaunchPad", quote: "We built our entire brand identity using Flash AI. No designer needed." },
   { name: "Maya Patel", role: "Content Creator", company: "YouTube", quote: "Thumbnails, banners, posts — I make everything here. The quality is insane." },
-  { name: "David Okafor", role: "Product Manager", company: "FinoTech", quote: "Our presentation workflow went from days to minutes. The AI presentation builder is magic." },
-  { name: "Lisa Wang", role: "Social Media Manager", company: "BrandHive", quote: "The caption generator alone saves me hours every week. Love the brand kit feature." },
+  { name: "David Okafor", role: "Product Manager", company: "FinoTech", quote: "Our design workflow went from days to minutes. The AI tools are pure magic." },
+  { name: "Lisa Wang", role: "Social Media Manager", company: "BrandHive", quote: "The image enhancer alone saves me hours every week. My whole team runs on Flash AI." },
 ];
 
 const Index = () => {
