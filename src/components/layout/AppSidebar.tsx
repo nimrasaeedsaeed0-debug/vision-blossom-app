@@ -1,7 +1,6 @@
 import {
-  Wand2, Clock, Settings, LayoutDashboard,
-  FolderOpen, Sparkles, Scissors, Palette, PresentationIcon,
-  MessageSquare, Star, Expand, Eraser, BookOpen, Plus, Check, Building2, ChevronDown,
+  Wand2, Clock, Settings, Home as HomeIcon,
+  Sparkles, Scissors, Palette, Star, Expand, Eraser, BookOpen, Plus, Check, Building2, ChevronDown,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { FlashLogo } from "@/components/FlashLogo";
@@ -37,12 +36,11 @@ type NavItem = {
 };
 
 const mainNav: NavItem[] = [
-  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
+  { title: "Home", url: "/dashboard", icon: HomeIcon },
   { title: "Templates", url: "/templates", icon: BookOpen },
 ];
 
 const workNav: NavItem[] = [
-  { title: "All Projects", url: "/projects", icon: FolderOpen },
   { title: "Favorites", url: "/favorites", icon: Star },
   { title: "History", url: "/history", icon: Clock },
 ];
@@ -54,12 +52,6 @@ const aiNav: NavItem[] = [
   { title: "Image Expander", url: "/expander", icon: Expand },
   { title: "Magic Erase", url: "/magic-erase", icon: Eraser },
   { title: "Style Transfer", url: "/style-transfer", icon: Palette },
-  { title: "Presentation Builder", url: "/presentations", icon: PresentationIcon },
-  { title: "Caption Generator", url: "/captions", icon: MessageSquare },
-];
-
-const brandNav: NavItem[] = [
-  { title: "Brand Kit", url: "/brand-kit", icon: Palette },
 ];
 
 function NavSection({
@@ -159,7 +151,6 @@ export function AppSidebar() {
         <NavSection label="Home" items={mainNav} collapsed={collapsed} />
         <NavSection label="My Work" items={workNav} collapsed={collapsed} />
         <NavSection label="AI Tools" items={aiNav} collapsed={collapsed} />
-        <NavSection label="Brand" items={brandNav} collapsed={collapsed} />
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border p-3">
